@@ -316,6 +316,8 @@ public import Mathlib.Algebra.Field.Subfield.Defs
 public import Mathlib.Algebra.Field.TransferInstance
 public import Mathlib.Algebra.Field.ULift
 public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.FiniteSupport.Basic
+public import Mathlib.Algebra.FiniteSupport.Defs
 public import Mathlib.Algebra.FiveLemma
 public import Mathlib.Algebra.Free
 public import Mathlib.Algebra.FreeAbelianGroup.Finsupp
@@ -1287,6 +1289,7 @@ public import Mathlib.AlgebraicGeometry.Cover.Open
 public import Mathlib.AlgebraicGeometry.Cover.Over
 public import Mathlib.AlgebraicGeometry.Cover.QuasiCompact
 public import Mathlib.AlgebraicGeometry.Cover.Sigma
+public import Mathlib.AlgebraicGeometry.EffectiveEpi
 public import Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Basic
 public import Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Formula
 public import Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point
@@ -1432,6 +1435,7 @@ public import Mathlib.AlgebraicTopology.ModelCategory.Cylinder
 public import Mathlib.AlgebraicTopology.ModelCategory.DerivabilityStructureCofibrant
 public import Mathlib.AlgebraicTopology.ModelCategory.DerivabilityStructureFibrant
 public import Mathlib.AlgebraicTopology.ModelCategory.FibrantObjectHomotopy
+public import Mathlib.AlgebraicTopology.ModelCategory.FundamentalLemma
 public import Mathlib.AlgebraicTopology.ModelCategory.Homotopy
 public import Mathlib.AlgebraicTopology.ModelCategory.Instances
 public import Mathlib.AlgebraicTopology.ModelCategory.IsCofibrant
@@ -6211,6 +6215,7 @@ public import Mathlib.RingTheory.Ideal.Basis
 public import Mathlib.RingTheory.Ideal.BigOperators
 public import Mathlib.RingTheory.Ideal.Colon
 public import Mathlib.RingTheory.Ideal.Cotangent
+public import Mathlib.RingTheory.Ideal.CotangentBaseChange
 public import Mathlib.RingTheory.Ideal.Defs
 public import Mathlib.RingTheory.Ideal.GoingDown
 public import Mathlib.RingTheory.Ideal.GoingUp
