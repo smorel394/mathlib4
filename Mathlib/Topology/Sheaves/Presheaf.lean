@@ -334,30 +334,24 @@ theorem truc {X Y : TopCat.{v}} (f : X ⟶ Y) (ℱ : Y.Presheaf C) (U : Opens Y)
     ((Presheaf.pushforwardPullbackAdjunction C f).unit.app ℱ).app (op U) =
     ℱ.map (Quiver.Hom.op (homOfLE (Set.image_preimage_subset f U))) ≫
     (pullbackObjObjOfImageOpen f ℱ _ H).inv := by
-  dsimp [pullbackObjObjOfImageOpen]
-  set V := (TopologicalSpace.Opens.map f).obj U
-  let x : CostructuredArrow (Opens.map f).op (op V) := CostructuredArrow.mk
-    (@homOfLE _ _ _ ((Opens.map f).obj ⟨_, H⟩) (Set.image_preimage.le_u_l _)).op
-  have hx : IsTerminal x :=
-    { lift := fun s ↦ by
-        fapply CostructuredArrow.homMk
-        · change op (unop _) ⟶ op (⟨_, H⟩ : Opens _)
-          refine (homOfLE ?_).op
-          apply (Set.image_mono s.pt.hom.unop.le).trans
-          exact Set.image_preimage.l_u_le (SetLike.coe s.pt.left.unop)
-        · simp [eq_iff_true_of_subsingleton] }
-  have eq : (coconeOfDiagramTerminal hx (CostructuredArrow.proj
-      (Opens.map f).op (op V) ⋙ ℱ)).ι.app (CostructuredArrow.mk (𝟙 _)) =
-      ℱ.map (Quiver.Hom.op (homOfLE (Set.image_preimage_subset f U))) := by cat_disch
-  rw [← eq]
-  rw [Limits.IsColimit.comp_coconePointUniqueUpToIso_inv]
-  dsimp [pushforwardPullbackAdjunction]
+  rw [Iso.eq_comp_inv]
+  have eq : ((pushforwardPullbackAdjunction C f).unit.app ℱ).app (op U) =
+      ((LeftExtension.mk ((Opens.map f).op.leftKanExtension ℱ)
+      ((Opens.map f).op.leftKanExtensionUnit ℱ)).coconeAt (op ((Opens.map f).obj U))).ι.app
+      (CostructuredArrow.mk (𝟙 _)) := by
+    dsimp [pushforwardPullbackAdjunction]
+    cat_disch
+  rw [eq, pullbackObjObjOfImageOpen, Limits.IsColimit.comp_coconePointUniqueUpToIso_hom]
   cat_disch
 
-
---  symm
---  rw [Iso.comp_inv_eq]
-
+set_option backward.isDefEq.respectTransparency false in
+theorem machin {X Y : TopCat.{v}} (f : X ⟶ Y) (ℱ : X.Presheaf C) (U : Opens X)
+    (H : IsOpen (f '' U)) :
+    ((Presheaf.pushforwardPullbackAdjunction C f).counit.app ℱ).app (op U) =
+    sorry ≫ ℱ.map (Quiver.Hom.op (homOfLE
+    (Set.subset_preimage_image f U : U ≤ ((TopologicalSpace.Opens.map f).obj ⟨_, H⟩ : Opens X)))) := by
+  have le : U ≤ (TopologicalSpace.Opens.map f).obj ⟨_, H⟩ := Set.subset_preimage_image f U
+  set v := ℱ.map (homOfLE le).op
 
 end
 
