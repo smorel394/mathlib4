@@ -109,9 +109,6 @@ theorem exists_lift_cover_basis_of_isLocallySurjective {T : ℱ ⟶ 𝒢} (hT : 
   exact ⟨X, V, IsOpenCover.mk (eq_top_iff.mpr (fun x hx ↦ Opens.mem_iSup.mpr ⟨x, hV x hx⟩)),
     fun x ↦ t x (Opens.mem_top _), fun x ↦ ⟨BV x (Opens.mem_top x), ht x (Opens.mem_top _)⟩⟩
 
-example : Opens.IsBasis (⊤ : Set (Opens X)) :=
-  Opens.isBasis_iff_nbhd.mpr (fun {U _} hx ↦ ⟨U, by simp, hx, le_refl _⟩)
-
 set_option backward.isDefEq.respectTransparency false in
 /--
 Let `T : ℱ ⟶ 𝒢` be a locally surjective morphism of presheaves on `X`. For every glocal section
