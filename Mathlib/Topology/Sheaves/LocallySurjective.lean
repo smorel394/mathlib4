@@ -9,6 +9,7 @@ public import Mathlib.Topology.Sheaves.Presheaf
 public import Mathlib.Topology.Sheaves.Stalks
 public import Mathlib.CategoryTheory.Limits.Preserves.Filtered
 public import Mathlib.CategoryTheory.Sites.LocallySurjective
+public import Mathlib.Topology.Sets.OpenCover
 
 /-!
 
@@ -60,6 +61,11 @@ See `TopCat.Presheaf.isLocallySurjective_iff` below.
 def IsLocallySurjective (T : ℱ ⟶ 𝒢) :=
   CategoryTheory.Presheaf.IsLocallySurjective (Opens.grothendieckTopology X) T
 
+/--
+A morphism `T : ℱ ⟶ 𝒢` of presheaves on `X` is locally surjective if and only if, for every open
+`U` of `X`, every section `t` of `𝒢` on `U` and every `x ∈ U`, there exists an open `V ≤ U`
+containing `x` and a section `s` of `ℱ` on `V` whose image by `T` is `t |_ V`.
+-/
 theorem isLocallySurjective_iff (T : ℱ ⟶ 𝒢) :
     IsLocallySurjective T ↔
       ∀ (U t), ∀ x ∈ U, ∃ (V : _) (_ : V ≤ U), (∃ s, (T.app _) s = t |_ V ) ∧ x ∈ V := by
@@ -68,6 +74,56 @@ theorem isLocallySurjective_iff (T : ℱ ⟶ 𝒢) :
     exact ⟨V, leOfHom i, hi⟩
   · obtain ⟨V, Vle, hV⟩ := h _ s x hx
     exact ⟨V, homOfLE Vle, hV⟩
+
+/--
+Let `B` be a set of opens of `X` that is a basis of the topology.
+A morphism `T : ℱ ⟶ 𝒢` of presheaves on `X` is locally surjective if and only if, for every open
+`U` of `X`, every section `t` of `𝒢` on `U` and every `x ∈ U`, there exists an element `V` of `B`
+such that `V ≤ U` and `x ∈ V`, and a section `s` of `ℱ` on `V` whose image by `T` is `t |_ V`.
+-/
+theorem isLocallySurjective_iff' (T : ℱ ⟶ 𝒢) {B : Set (Opens X)} (hB : Opens.IsBasis B) :
+    IsLocallySurjective T ↔ ∀ (U t), ∀ x ∈ U,
+    ∃ (V : _) (_ : V ∈ B) (_ : V ≤ U) (s : ToType (ℱ.obj (op V))),
+    (T.app _) s = t |_ V  ∧ x ∈ V := by
+  rw [isLocallySurjective_iff]
+  refine ⟨fun h _ t x hx ↦ ?_, fun h _ t x hx ↦ ?_⟩
+  · obtain ⟨V, i, ⟨⟨s, hs⟩, hV⟩⟩ := h _ t x hx
+    obtain ⟨W, hW1, hW2, hW3⟩ := Opens.isBasis_iff_nbhd.mp hB hV
+    refine ⟨W, hW1, le_trans hW3 i, s |_ W, ?_, hW2⟩
+    rw [Presheaf.map_restrict, hs, Presheaf.restrict_restrict]
+  · obtain ⟨V, _, le, s, hs, hV⟩ := h _ t x hx
+    exact ⟨V, le, ⟨s, hs⟩, hV⟩
+
+set_option backward.isDefEq.respectTransparency false in
+/--
+Let `T : ℱ ⟶ 𝒢` be a locally surjective morphism of presheaves on `X`, and let `B : Set (Opens X)`
+be a basis of the topology. For every glocal section `s` of `𝒢`, there exists a open cover
+`V : ι → Opens X` by elements of `B` and sections `t i` of `ℱ` on the `V i` such that
+`s |_ (V i) = t i` for every `i : ι`.
+-/
+theorem exists_lift_cover_basis_of_isLocallySurjective' {T : ℱ ⟶ 𝒢} (hT : IsLocallySurjective T)
+    {B : Set (Opens X)} (hB : Opens.IsBasis B) (s : ToType (𝒢.obj (op ⊤))) :
+    ∃ (ι : Type v) (V : ι → Opens X) (_ : IsOpenCover V) (t : (i : ι) → ToType (ℱ.obj (op (V i)))),
+    ∀ (i : ι), V i ∈ B ∧ (T.app _) (t i) = s |_ (V i) := by
+  have := (isLocallySurjective_iff' T hB).mp hT ⊤ s
+  choose! V BV Vle t ht hV using this
+  refine ⟨X, V, IsOpenCover.mk (eq_top_iff.mpr (fun x hx ↦ Opens.mem_iSup.mpr ⟨x, hV x hx⟩)),
+    fun x ↦ t x (Opens.mem_top _), fun x ↦ ⟨BV x (Opens.mem_top x), ht x (Opens.mem_top _)⟩⟩
+
+set_option backward.isDefEq.respectTransparency false in
+/--
+Let `T : ℱ ⟶ 𝒢` be a locally surjective morphism of presheaves on `X`. For every glocal section
+`s` of `𝒢`, there exists a open cover `V : ι → Opens X` and sections `t i` of `ℱ` on the `V i`
+such that `s |_ (V i) = t i` for every `i : ι`.
+-/
+theorem exists_lift_cover_of_isLocallySurjective' {T : ℱ ⟶ 𝒢} (hT : IsLocallySurjective T)
+    {B : Set (Opens X)} (hB : Opens.IsBasis B) (s : ToType (𝒢.obj (op ⊤))) :
+    ∃ (ι : Type v) (u : ι → Opens X) (_ : IsOpenCover u) (t : (i : ι) → ToType (ℱ.obj (op (u i)))),
+    ∀ (i : ι), (T.app _) (t i) = s |_ (u i) := by
+  have := (isLocallySurjective_iff' T hB).mp hT ⊤ s
+  choose! V BV Vle t ht hV using this
+  exact ⟨X, V, IsOpenCover.mk (eq_top_iff.mpr (fun x hx ↦ Opens.mem_iSup.mpr ⟨x, hV x hx⟩)),
+    fun x ↦ t x (Opens.mem_top _), fun x ↦ ht x (Opens.mem_top _)⟩
 
 section SurjectiveOnStalks
 
