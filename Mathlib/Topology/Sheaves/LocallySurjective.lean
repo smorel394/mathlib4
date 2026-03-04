@@ -101,14 +101,16 @@ be a basis of the topology. For every glocal section `s` of `𝒢`, there exists
 `V : ι → Opens X` by elements of `B` and sections `t i` of `ℱ` on the `V i` such that
 `s |_ (V i) = t i` for every `i : ι`.
 -/
-theorem exists_lift_cover_basis_of_isLocallySurjective' {T : ℱ ⟶ 𝒢} (hT : IsLocallySurjective T)
+theorem exists_lift_cover_basis_of_isLocallySurjective {T : ℱ ⟶ 𝒢} (hT : IsLocallySurjective T)
     {B : Set (Opens X)} (hB : Opens.IsBasis B) (s : ToType (𝒢.obj (op ⊤))) :
     ∃ (ι : Type v) (V : ι → Opens X) (_ : IsOpenCover V) (t : (i : ι) → ToType (ℱ.obj (op (V i)))),
     ∀ (i : ι), V i ∈ B ∧ (T.app _) (t i) = s |_ (V i) := by
-  have := (isLocallySurjective_iff' T hB).mp hT ⊤ s
-  choose! V BV Vle t ht hV using this
-  refine ⟨X, V, IsOpenCover.mk (eq_top_iff.mpr (fun x hx ↦ Opens.mem_iSup.mpr ⟨x, hV x hx⟩)),
+  choose! V BV Vle t ht hV using ((isLocallySurjective_iff' T hB).mp hT ⊤ s)
+  exact ⟨X, V, IsOpenCover.mk (eq_top_iff.mpr (fun x hx ↦ Opens.mem_iSup.mpr ⟨x, hV x hx⟩)),
     fun x ↦ t x (Opens.mem_top _), fun x ↦ ⟨BV x (Opens.mem_top x), ht x (Opens.mem_top _)⟩⟩
+
+example : Opens.IsBasis (⊤ : Set (Opens X)) :=
+  Opens.isBasis_iff_nbhd.mpr (fun {U _} hx ↦ ⟨U, by simp, hx, le_refl _⟩)
 
 set_option backward.isDefEq.respectTransparency false in
 /--
@@ -116,14 +118,13 @@ Let `T : ℱ ⟶ 𝒢` be a locally surjective morphism of presheaves on `X`. Fo
 `s` of `𝒢`, there exists a open cover `V : ι → Opens X` and sections `t i` of `ℱ` on the `V i`
 such that `s |_ (V i) = t i` for every `i : ι`.
 -/
-theorem exists_lift_cover_of_isLocallySurjective' {T : ℱ ⟶ 𝒢} (hT : IsLocallySurjective T)
-    {B : Set (Opens X)} (hB : Opens.IsBasis B) (s : ToType (𝒢.obj (op ⊤))) :
+theorem exists_lift_cover_of_isLocallySurjective {T : ℱ ⟶ 𝒢} (hT : IsLocallySurjective T)
+    (s : ToType (𝒢.obj (op ⊤))) :
     ∃ (ι : Type v) (u : ι → Opens X) (_ : IsOpenCover u) (t : (i : ι) → ToType (ℱ.obj (op (u i)))),
     ∀ (i : ι), (T.app _) (t i) = s |_ (u i) := by
-  have := (isLocallySurjective_iff' T hB).mp hT ⊤ s
-  choose! V BV Vle t ht hV using this
-  exact ⟨X, V, IsOpenCover.mk (eq_top_iff.mpr (fun x hx ↦ Opens.mem_iSup.mpr ⟨x, hV x hx⟩)),
-    fun x ↦ t x (Opens.mem_top _), fun x ↦ ht x (Opens.mem_top _)⟩
+  obtain ⟨ι, u, hu, t, ht⟩ := exists_lift_cover_basis_of_isLocallySurjective hT (B := ⊤)
+    (Opens.isBasis_iff_nbhd.mpr (fun {U _} hx ↦ ⟨U, by simp, hx, le_refl _⟩)) s
+  exact ⟨ι, u, hu, t, fun i ↦ (ht i).2⟩
 
 section SurjectiveOnStalks
 
