@@ -58,7 +58,7 @@ class IsFlasque : Prop where
 
 namespace IsFlasque
 
-instance (priority := low) [h : IsFlasque F]
+instance (priority := low) map_epi [h : IsFlasque F]
     {U V : (Opens X)ᵒᵖ} (i : U ⟶ V) : Epi (F.map i) := h.epi i
 
 theorem pushforward_isFlasque {Y : TopCat.{u}} [IsFlasque F] (f : X ⟶ Y) :

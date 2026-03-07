@@ -2,10 +2,10 @@ module
 
 public import Mathlib.Combinatorics.Quiver.ReflQuiver
 public import Mathlib.Topology.Sheaves.Flasque
+public import Mathlib.AlgebraicGeometry.Scheme
+public import Mathlib
 
 @[expose] public section
-
-assert_not_exists TwoSidedIdeal
 
 universe w' w v u
 
@@ -278,3 +278,57 @@ end
 end Sheaf
 
 end CategoryTheory
+
+open TopologicalSpace CategoryTheory Topology Opposite
+
+@[simps!]
+def CategoryTheory.Adjunction.sheafPushforwardContinuous {C : Type*} [Category* C] {D : Type*}
+    [Category* D] {F : C ⥤ D} {G : D ⥤ C} (adj : F ⊣ G)
+    (J : GrothendieckTopology C) (K : GrothendieckTopology D) [F.IsContinuous J K]
+    [G.IsContinuous K J] (E : Type*) [Category* E] :
+    F.sheafPushforwardContinuous E J K ⊣ G.sheafPushforwardContinuous E K J where
+  unit.app P := { val := (adj.op.whiskerLeft _).unit.app P.val }
+  counit.app P := { val := (adj.op.whiskerLeft _).counit.app P.val }
+  left_triangle_components P := by
+    ext : 1
+    exact (adj.op.whiskerLeft _).left_triangle_components P.val
+  right_triangle_components P := by
+    ext : 1
+    exact (adj.op.whiskerLeft _).right_triangle_components P.val
+
+variable (C : Type*) [Category* C] {X : TopCat.{u}} {Y : TopCat.{u}} {f : Y ⟶ X}
+  (hf : IsOpenEmbedding f)
+
+namespace TopCat.Sheaf
+
+abbrev restrict : Sheaf C X ⥤ Sheaf C Y := by
+  haveI := hf.functor_isContinuous
+  exact hf.functor.sheafPushforwardContinuous C ..
+
+abbrev restrictPushforwardAdjunction : restrict C hf ⊣ pushforward C f := by
+  haveI := hf.functor_isContinuous
+  exact Adjunction.sheafPushforwardContinuous hf.isOpenMap.adjunction ..
+
+variable (F : Sheaf C X) (U V : Opens X)
+
+abbrev toRestrict := (restrictPushforwardAdjunction C U.isOpenEmbedding).unit
+
+example : ((restrict C U.isOpenEmbedding ⋙ pushforward C U.inclusion').obj F).val.obj (op V) =
+    F.val.obj (op (U.isOpenEmbedding.functor.obj ((Opens.map U.inclusion').obj V))) := rfl
+
+example : U.isOpenEmbedding.functor.obj ((Opens.map U.inclusion').obj V) = U ⊓ V := by aesop
+
+lemma toRestrict_app_val_all : ((toRestrict C U).app F).val.app (op V) =
+    F.val.map (U.isOpenEmbedding.isOpenMap.adjunction.counit.app V).op := by simp
+
+lemma toRestrict_app_val_app_epi [IsFlasque F] : Epi (((toRestrict C U).app F).val.app (op V)) := by
+  rw [toRestrict_app_val_all]
+  apply Presheaf.IsFlasque.map_epi
+
+lemma restrict_comp_pushforward_isFlasque [IsFlasque F] :
+    IsFlasque ((restrict C U.isOpenEmbedding ⋙ pushforward C U.inclusion').obj F) where
+  epi {U V i} := by
+    dsimp
+    apply Presheaf.IsFlasque.map_epi
+
+end TopCat.Sheaf
