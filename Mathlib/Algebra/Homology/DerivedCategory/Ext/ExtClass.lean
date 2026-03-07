@@ -130,7 +130,10 @@ lemma extClass_comp_assoc {Y : C} {n : ℕ} (γ : Ext S.X₂ Y n) {n' : ℕ} {h 
 lemma extClass_naturality {S₁ S₂ : ShortComplex C}
     (h₁ : S₁.ShortExact) (h₂ : S₂.ShortExact) (f : S₁ ⟶ S₂) :
     h₁.extClass.comp (Ext.mk₀ f.τ₁) (add_zero 1) =
-      (Ext.mk₀ f.τ₃).comp h₂.extClass (zero_add 1) := by sorry
+      (Ext.mk₀ f.τ₃).comp h₂.extClass (zero_add 1) := by
+  letI := HasDerivedCategory.standard C
+  ext
+  simpa [ShiftedHom.comp_mk₀, ShiftedHom.mk₀_comp] using (singleTriangle.map h₁ h₂ f).comm₃
 
 end ShortExact
 
