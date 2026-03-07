@@ -29,19 +29,19 @@ noncomputable abbrev restrict (U : Opens X) :
 --local instance (U : Opens X) : PreservesFiniteLimits (restrict U) := inferInstance
 
 noncomputable abbrev restrict_sections_top (U : Opens X) (F : X.Sheaf AddCommGrpCat.{u}) :
-    ((restrict U).obj F).val.obj (op ⊤) ≅ F.val.obj (op U) :=
+    ((restrict U).obj F).obj.obj (op ⊤) ≅ F.obj.obj (op U) :=
   (((sheafToPresheaf _ _).mapIso ((((Opens.isOpenEmbedding U)).sheafPullbackIso _).app F))).app
   (Opposite.op ⊤) ≪≫ U.sheafPullback_sections_top _ F
 
 lemma restrict_section_top_hom_naturality (U : Opens X) {F F' : X.Sheaf AddCommGrpCat.{u}}
-    (f : F ⟶ F') (s : ((restrict U).obj F).val.obj (op ⊤)) :
-    (restrict_sections_top U F').hom (((restrict U).map f).val.app (op ⊤) s) =
-    f.val.app (op U) ((restrict_sections_top U F).hom s) := sorry
+    (f : F ⟶ F') (s : ((restrict U).obj F).obj.obj (op ⊤)) :
+    (restrict_sections_top U F').hom (((restrict U).map f).hom.app (op ⊤) s) =
+    f.hom.app (op U) ((restrict_sections_top U F).hom s) := sorry
 
 lemma restrict_section_top_inv_naturality (U : Opens X) {F F' : X.Sheaf AddCommGrpCat.{u}}
-    (f : F ⟶ F') (s : F.val.obj (op U)) :
-    (restrict_sections_top U F').inv (f.val.app (op U) s) =
-    ((restrict U).map f).val.app (op ⊤) ((restrict_sections_top U F).inv s) := sorry
+    (f : F ⟶ F') (s : F.obj.obj (op U)) :
+    (restrict_sections_top U F').inv (f.hom.app (op U) s) =
+    ((restrict U).map f).hom.app (op ⊤) ((restrict_sections_top U F).inv s) := sorry
 
 local instance (U : Opens X) : (Sheaf.pullback AddCommGrpCat.{u} (Opens.inclusion' U)).Additive :=
   sorry
@@ -52,8 +52,8 @@ noncomputable abbrev to_restrict (U : Opens X) :
     𝟭 _ ⟶ restrict U := (Sheaf.pullbackPushforwardAdjunction _ (Opens.inclusion' U)).unit
 
 lemma restrict_sections_top_inv_eq_to_restrict (U : Opens X) (F : X.Sheaf AddCommGrpCat.{u})
-    (s : F.val.obj (op ⊤)) :
-    ((to_restrict U).app F).val.app (op ⊤) s = (restrict_sections_top U F).inv
+    (s : F.obj.obj (op ⊤)) :
+    ((to_restrict U).app F).hom.app (op ⊤) s = (restrict_sections_top U F).inv
     (Presheaf.restrictOpen s U (by simp)) := sorry
 
 local instance (U : Opens X) (F : TopCat.Sheaf AddCommGrpCat.{u} X) [IsFlasque F] :
@@ -173,6 +173,7 @@ lemma restrict_sequence_short_exact {S : ShortComplex (X.Sheaf AddCommGrpCat.{u}
 local instance : HasExt.{u} (TopCat.Sheaf AddCommGrpCat.{u} X) := hasExt_of_enoughInjectives _
 -- Why do I need to declare this again?
 
+set_option maxHeartbeats 300000 in
 set_option backward.isDefEq.respectTransparency false in
 /--
 Base case of the induction in `prop1`.
@@ -222,11 +223,11 @@ theorem prop1_base (F : TopCat.Sheaf AddCommGrpCat.{u} X) {B : Set (Opens X)}
     apply (TopCat.Sheaf.H.equiv₀ (restrict_pres (U i) F).X₃).injective
     have : Mono (ι (U i) F) := inferInstance
     apply (ConcreteCategory.mono_iff_injective_of_preservesPullback
-        ((ι (U i) F).val.app (op ⊤))).mp inferInstance
+        ((ι (U i) F).hom.app (op ⊤))).mp inferInstance
     rw [TopCat.Sheaf.H.equiv₀_naturality, ← TopCat.Sheaf.H.map_comp_apply, ηcond₁]
     conv_rhs => rw [← TopCat.Sheaf.H.equiv₀_naturality, AddEquiv.apply_symm_apply]
     have := ιcond (U i) F
-    apply_fun (fun x ↦ x.val.app (op ⊤) ((((ConcreteCategory.hom
+    apply_fun (fun x ↦ x.hom.app (op ⊤) ((((ConcreteCategory.hom
         (restrict_sections_top (U i) (pres F).X₂).inv) (t i))))) at this
     convert this.symm
     erw [← restrict_section_top_inv_naturality]; rw [(h i).2]
@@ -281,6 +282,7 @@ end CategoryTheory
 
 open TopologicalSpace CategoryTheory Topology Opposite
 
+/-
 @[simps!]
 def CategoryTheory.Adjunction.sheafPushforwardContinuous {C : Type*} [Category* C] {D : Type*}
     [Category* D] {F : C ⥤ D} {G : D ⥤ C} (adj : F ⊣ G)
@@ -295,6 +297,7 @@ def CategoryTheory.Adjunction.sheafPushforwardContinuous {C : Type*} [Category* 
   right_triangle_components P := by
     ext : 1
     exact (adj.op.whiskerLeft _).right_triangle_components P.val
+-/
 
 variable (C : Type*) [Category* C] {X : TopCat.{u}} {Y : TopCat.{u}} {f : Y ⟶ X}
   (hf : IsOpenEmbedding f)
@@ -313,15 +316,15 @@ variable (F : Sheaf C X) (U V : Opens X)
 
 abbrev toRestrict := (restrictPushforwardAdjunction C U.isOpenEmbedding).unit
 
-example : ((restrict C U.isOpenEmbedding ⋙ pushforward C U.inclusion').obj F).val.obj (op V) =
-    F.val.obj (op (U.isOpenEmbedding.functor.obj ((Opens.map U.inclusion').obj V))) := rfl
+example : ((restrict C U.isOpenEmbedding ⋙ pushforward C U.inclusion').obj F).obj.obj (op V) =
+    F.obj.obj (op (U.isOpenEmbedding.functor.obj ((Opens.map U.inclusion').obj V))) := rfl
 
 example : U.isOpenEmbedding.functor.obj ((Opens.map U.inclusion').obj V) = U ⊓ V := by aesop
 
-lemma toRestrict_app_val_all : ((toRestrict C U).app F).val.app (op V) =
-    F.val.map (U.isOpenEmbedding.isOpenMap.adjunction.counit.app V).op := by simp
+lemma toRestrict_app_val_all : ((toRestrict C U).app F).hom.app (op V) =
+    F.obj.map (U.isOpenEmbedding.isOpenMap.adjunction.counit.app V).op := by simp
 
-lemma toRestrict_app_val_app_epi [IsFlasque F] : Epi (((toRestrict C U).app F).val.app (op V)) := by
+lemma toRestrict_app_val_app_epi [IsFlasque F] : Epi (((toRestrict C U).app F).hom.app (op V)) := by
   rw [toRestrict_app_val_all]
   apply Presheaf.IsFlasque.map_epi
 

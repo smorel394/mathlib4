@@ -99,7 +99,7 @@ open Opposite
 
 lemma longSequence_equiv₀_exact₃ (x₃ : S.X₃.val.obj (op T))
     (hx₃ : (H.connectingHom hS 0 1) ((H.equiv₀ S.X₃ hT).symm x₃) = 0) :
-    ∃ x₂ : S.X₂.val.obj (op T), S.g.val.app (op T) x₂ = x₃ := by
+    ∃ x₂ : S.X₂.obj.obj (op T), S.g.hom.app (op T) x₂ = x₃ := by
   obtain ⟨x₂', hx₂'⟩ := longSequence_exact₃ hS 0 _ _ ((H.equiv₀ S.X₃ hT).symm x₃) hx₃
   use H.equiv₀ S.X₂ hT x₂'
   simp [H.equiv₀_naturality, hx₂']

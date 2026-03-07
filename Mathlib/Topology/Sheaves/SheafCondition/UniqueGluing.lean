@@ -256,7 +256,7 @@ theorem eq_app_of_forall_eq {V : Opens X} {G : Sheaf C X} {f : F ⟶ G}
     {s : ToType (F.1.obj (op (iSup U)))} {t : ToType (G.1.obj (op V))}
     {sf : ∀ i : ι, ToType (F.1.obj (op (U i)))} (h : IsGluing F.1 U sf s) (hV : ∀ i : ι, U i ≤ V)
     (ht : ∀ i : ι, f.1.app (op (U i)) (sf i) = G.1.map (homOfLE (hV i)).op t) :
-    f.val.app (op (iSup U)) s = G.val.map (homOfLE (by aesop_cat)).op t := by
+    f.hom.app (op (iSup U)) s = G.obj.map (homOfLE (by aesop_cat)).op t := by
   apply eq_of_locally_eq G U
   intro i
   conv => lhs; equals f.1.app (op (U i)) (sf i) => rw[← h i]; simp

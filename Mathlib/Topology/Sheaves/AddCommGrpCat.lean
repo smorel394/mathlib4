@@ -60,8 +60,8 @@ lemma Presheaf.restrict_sum {V : Opens X} {F : Presheaf AddCommGrpCat X} (h : V 
 namespace Sheaf
 
 lemma addCommGrpCat_shortExact_app_zero {S : ShortComplex (Sheaf AddCommGrpCat X)}
-    (hS : S.Exact) (s : S.X₂.val.obj (op U)) (h : S.g.val.app (op U) s = 0) (hf : Mono S.f) :
-    ∃(t : S.X₁.val.obj (op U)), S.f.val.app (op U) t = s := by
+    (hS : S.Exact) (s : S.X₂.obj.obj (op U)) (h : S.g.hom.app (op U) s = 0) (hf : Mono S.f) :
+    ∃(t : S.X₁.obj.obj (op U)), S.f.hom.app (op U) t = s := by
   have := ((Functor.preservesFiniteLimits_tfae (forget AddCommGrpCat X)).out 1 3).mpr
     (inferInstanceAs (Limits.PreservesFiniteLimits (forget AddCommGrpCat X)))
   exact Presheaf.addCommGrpCat_shortExact_app_zero (this S ⟨hS, hf⟩).left h
@@ -97,12 +97,12 @@ abbrev H.equiv₀ (F : (Sheaf AddCommGrpCat X)) : H F 0 ≃+ F.val.obj (op ⊤) 
 set_option backward.isDefEq.respectTransparency false in
 /-- `H.equiv₀` is natural. -/
 theorem H.equiv₀_naturality {F G : Sheaf AddCommGrpCat X} (f : F ⟶ G) (x : H F 0) :
-    f.val.app (op ⊤) ((H.equiv₀ F) x) = H.equiv₀ G (H.map f 0 x) :=
+    f.hom.app (op ⊤) ((H.equiv₀ F) x) = H.equiv₀ G (H.map f 0 x) :=
   CategoryTheory.Sheaf.H.equiv₀_naturality Limits.isTerminalTop f x
 
 set_option backward.isDefEq.respectTransparency false in
 theorem H.equiv₀_symm_naturality {F G : Sheaf AddCommGrpCat X} (f : F ⟶ G) (x : F.val.obj (op ⊤)) :
-    H.map f 0 ((H.equiv₀ F).symm x) = (H.equiv₀ G).symm (f.val.app (op ⊤) x)
+    H.map f 0 ((H.equiv₀ F).symm x) = (H.equiv₀ G).symm (f.hom.app (op ⊤) x)
   := CategoryTheory.Sheaf.H.equiv₀_symm_naturality Limits.isTerminalTop f x
 
 lemma H.map_apply {n : ℕ} (x : H F n) :
