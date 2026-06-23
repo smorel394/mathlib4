@@ -10,6 +10,7 @@ public import Mathlib.Algebra.Homology.ShortComplex.HomologicalComplex
 public import Mathlib.Tactic.Abel
 public import Mathlib.CategoryTheory.Quotient
 public import Mathlib.CategoryTheory.Preadditive.Comma
+public import Mathlib.CategoryTheory.Quotient.Preadditive
 
 /-!
 # Homotopies in the arrow category
@@ -139,5 +140,38 @@ def RightFreyd :=
 
 instance : Category (RightFreyd V) :=
   inferInstanceAs <| Category (CategoryTheory.Quotient (rightHomotopic V))
+
+namespace RightFreyd
+
+instance : Preadditive (CategoryTheory.Quotient (rightHomotopic V)) :=
+  Quotient.preadditive _ (by
+    rintro _ _ _ _ _ _ ⟨h⟩ ⟨h'⟩
+    exact ⟨RightHomotopy.add h h'⟩)
+
+instance : Preadditive (RightFreyd V) :=
+  inferInstanceAs <| Preadditive (CategoryTheory.Quotient (rightHomotopic V))
+
+/-- The quotient functor from complexes to the homotopy category. -/
+def quotient : Arrow V ⥤ RightFreyd V :=
+  CategoryTheory.Quotient.functor _
+
+instance : (quotient V).Full := Quotient.full_functor _
+
+instance : (quotient V).EssSurj := Quotient.essSurj_functor _
+
+instance : (quotient V).Additive where
+
+instance : Functor.Additive (Quotient.functor (rightHomotopic V)) where
+
+open ZeroObject
+
+instance [HasZeroObject V] : Inhabited (RightFreyd V) :=
+  ⟨(quotient V).obj 0⟩
+
+instance [HasZeroObject V] : HasZeroObject (RightFreyd V) :=
+  ⟨(quotient V).obj 0, by
+    rw [IsZero.iff_id_eq_zero, ← (quotient V c).map_id, id_zero, Functor.map_zero]⟩
+
+end RightFreyd
 
 end CategoryTheory.Arrow
