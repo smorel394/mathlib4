@@ -239,6 +239,37 @@ instance : (quotient V).Additive where
 
 instance : Functor.Additive (Quotient.functor (rightHomotopic V)) where
 
+variable {V}
+
+-- Is this used?
+lemma quotient_obj_surjective (X : RightFreyd V) :
+    ∃ (u : Arrow V), (quotient _).obj u = X :=
+  ⟨_, rfl⟩
+
+theorem eq_of_homotopy {u v : Arrow V} (f g : u ⟶ v) (h : RightHomotopy f g) :
+    (quotient V).map f = (quotient V).map g :=
+  CategoryTheory.Quotient.sound _ ⟨h⟩
+
+/-- If two morphisms of `Arrow V` become equal in the right Freyd category,
+then they are right homotopic. -/
+def homotopyOfEq {u v : Arrow V} (f g : u ⟶ v)
+    (w : (quotient V).map f = (quotient V).map g) : RightHomotopy f g :=
+  ((Quotient.functor_map_eq_iff _ _ _).mp w).some
+
+lemma quotient_map_eq_zero_iff {u v : Arrow V} (f : u ⟶ v) :
+    (quotient V).map f = 0 ↔ Nonempty (RightHomotopy f 0) :=
+  ⟨fun h ↦ ⟨homotopyOfEq _ _ (by simpa using h)⟩,
+    fun ⟨h⟩ ↦ by simpa using eq_of_homotopy _ _ h⟩
+
+lemma isEpi_of_right_iso [IsIso f.right] : Epi ((quotient V).map f) where
+  left_cancellation g₁ g₂ eq := by
+    obtain ⟨g₁, rfl⟩ := (quotient V).map_surjective g₁
+    obtain ⟨g₂, rfl⟩ := (quotient V).map_surjective g₂
+    apply eq_of_homotopy
+    erw [← (quotient V).map_comp, ← (quotient V).map_comp] at eq
+    set h := homotopyOfEq _ _ eq
+    exact ⟨inv f.right ≫ h.hom, by simp [← h.comm]⟩
+
 section ZeroObject
 
 open ZeroObject
@@ -260,37 +291,91 @@ section Cokernels
 
 variable [HasBinaryBiproducts V]
 
-variable {V} {u v : Arrow V} (f : u ⟶ v)
+namespace Candidate
 
-def candidateCokernel : Arrow V := Arrow.mk (biprod.desc v.hom f.right)
+variable {u v : Arrow V} (f : u ⟶ v)
 
---  Arrow.mk (biprod.map (𝟙 v.right) (biprod.inl (X := v.left) (Y := u.right)))
+def cokernel : Arrow V := Arrow.mk (biprod.desc v.hom f.right)
 
-def candidateCokernelπ : v ⟶ candidateCokernel f := by
+def π : v ⟶ cokernel f := by
   refine Arrow.homMk biprod.inl (𝟙 v.right) ?_
-  simp only [candidateCokernel, mk_hom]
+  simp only [cokernel, mk_hom]
   erw [biprod.inl_desc, Category.comp_id]
 
-def candidateCokernelπ_condition : RightHomotopy (f ≫ candidateCokernelπ f) 0 where
+def condition : RightHomotopy (f ≫ π f) 0 where
   hom := biprod.inr
   comm := by
-    simp only [candidateCokernel, candidateCokernelπ, comp_right, homMk_right, Hom.zero_right,
-      mk_hom]
+    simp only [cokernel, π, comp_right, homMk_right, Hom.zero_right, mk_hom]
     erw [Category.comp_id, biprod.inr_desc, sub_zero]
 
+set_option backward.isDefEq.respectTransparency false in
+instance isEpi_π : Epi ((quotient V).map (π f)) :=
+  have : IsIso ((π f).right) := by simp only [π, homMk_right]; infer_instance
+  isEpi_of_right_iso
 
-#exit
-def candidateCokernelCofork : Cocone (parallelPair f 0) := by
-  refine CokernelCofork.ofπ ?_ ?_
+variable {w : Arrow V} (g : v ⟶ w) (h : RightHomotopy (f ≫ g) 0)
 
-def candidateCokernelIsCokernel : IsColimit (candidateCokernelCofork f) := sorry
+def desc : cokernel f ⟶ w := by
+  refine Arrow.homMk (biprod.desc g.left h.hom) g.right ?_
+  simp only [cokernel, mk_hom]
+  apply biprod.hom_ext'
+  · erw [biprod.inl_desc_assoc, biprod.inl_desc_assoc]
+    rw [g.w]
+    rfl
+  · erw [biprod.inr_desc_assoc, biprod.inr_desc_assoc]
+    rw [← h.comm]
+    simp only [comp_right, Hom.zero_right, sub_zero]
+    rfl
 
-instance : HasCokernels (Arrow V) where
-  has_colimit f := {
-    exists_colimit := Nonempty.intro {
-        cocone := candidateCokernel f
-        isColimit := candidateCokernelIsCokernel f}
-  }
+@[reassoc]
+lemma π_desc : π f ≫ desc f g h = g := by
+  simp only [cokernel, π, desc]
+  ext
+  · simp only [comp_left, homMk_left]
+    exact biprod.inl_desc _ _
+  · simp only [comp_right, homMk_right]
+    exact Category.id_comp _
+
+variable {X : RightFreyd V} {a : (quotient V).obj v ⟶ X} (eq : (quotient V).map f ≫ a = 0)
+
+def desc' : (quotient V).obj (cokernel f) ⟶ X := by
+  rw [← ((quotient V).map_surjective a).choose_spec] at eq
+  exact (quotient V).map (Candidate.desc _ _ (homotopyOfEq _ _ eq))
+
+lemma π_desc' : (quotient V).map (π f) ≫ desc' f eq = a := by
+  rw [← ((quotient V).map_surjective a).choose_spec] at eq
+  conv_rhs => rw [← ((quotient V).map_surjective a).choose_spec,
+                      ← Candidate.π_desc _ _ (homotopyOfEq _ _ eq)]
+  rfl
+
+end Candidate
+
+variable (f)
+
+def candidateCokernelCofork : Cocone (parallelPair ((quotient V).map f) 0) := by
+  refine CokernelCofork.ofπ ((quotient V).map (Candidate.π f)) ?_
+  rw [← (quotient V).map_comp]
+  exact eq_of_homotopy _ _ (Candidate.condition f)
+
+def candidateCokernelCoforkIsCokernel : IsColimit (candidateCokernelCofork f) where
+  desc s := Candidate.desc' f (CokernelCofork.condition s)
+  fac s j :=
+    match j with
+    | WalkingParallelPair.zero => by
+      simp only [Cofork.app_zero_eq_comp_π_left, CokernelCofork.condition]
+      exact zero_comp
+    | WalkingParallelPair.one => Candidate.π_desc' f (CokernelCofork.condition s)
+  uniq s m eq :=
+    (cancel_epi ((quotient V).map (Candidate.π f))).mp ((eq WalkingParallelPair.one).trans
+    (Candidate.π_desc' f (CokernelCofork.condition s)).symm)
+
+instance : HasCokernels (RightFreyd V) where
+  has_colimit {X Y} f := {
+    exists_colimit := by
+      obtain ⟨f, rfl⟩ := (quotient V).map_surjective f
+      exact Nonempty.intro {
+        cocone := candidateCokernelCofork f
+        isColimit := candidateCokernelCoforkIsCokernel f}}
 
 end Cokernels
 
