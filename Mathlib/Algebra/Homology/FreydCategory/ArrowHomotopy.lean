@@ -11,6 +11,7 @@ public import Mathlib.Tactic.Abel
 public import Mathlib.CategoryTheory.Quotient
 public import Mathlib.CategoryTheory.Preadditive.Comma
 public import Mathlib.CategoryTheory.Quotient.Preadditive
+public import Mathlib.CategoryTheory.Limits.Comma
 
 /-!
 # Homotopies in the arrow category
@@ -36,15 +37,90 @@ variable {u v w : Arrow V} (f g : u ⟶ v)
 @[ext]
 structure LeftHomotopy where
   hom : u.right ⟶ v.left
-  comm : f.right - g.right = hom ≫ v.hom := by cat_disch
+  comm : f.left - g.left = u.hom ≫ hom := by cat_disch
 
 /-- A right homotopy on morphisms in the category of arrows of a preadditive category. -/
 @[ext]
 structure RightHomotopy where
   hom : u.right ⟶ v.left
-  comm : f.left - g.left = u.hom ≫ hom := by cat_disch
+  comm : f.right - g.right = hom ≫ v.hom := by cat_disch
 
 variable {f g}
+
+namespace LeftHomotopy
+
+/-- `f` is homotopic to `g` iff `f - g` is homotopic to `0`.
+-/
+def equivSubZero : LeftHomotopy f g ≃ LeftHomotopy (f - g) 0 where
+  toFun h :=
+    { hom := h.hom
+      comm := by simp [← h.comm]}
+  invFun h :=
+    { hom := h.hom
+      comm := by simp [← h.comm]}
+  left_inv := by cat_disch
+  right_inv := by cat_disch
+
+/-- Equal chain maps are homotopic. -/
+@[simps]
+def ofEq (h : f = g) : LeftHomotopy f g where
+  hom := 0
+
+/-- Every chain map is homotopic to itself. -/
+@[simps!, refl]
+def refl (f : u ⟶ v) : LeftHomotopy f f :=
+  ofEq (rfl : f = f)
+
+/-- `f` is homotopic to `g` iff `g` is homotopic to `f`. -/
+@[simps!, symm]
+def symm {f g : u ⟶ v} (h : LeftHomotopy f g) : LeftHomotopy g f where
+  hom := -h.hom
+  comm := by simp [← h.comm]
+
+/-- homotopy is a transitive relation. -/
+@[simps!, trans]
+def trans {e f g : u ⟶ v} (h : LeftHomotopy e f) (k : LeftHomotopy f g) : LeftHomotopy e g where
+  hom := h.hom + k.hom
+  comm := by simp [← h.comm, ← k.comm]
+
+/-- the sum of two homotopies is a homotopy between the sum of the respective morphisms. -/
+@[simps!]
+def add {f₁ g₁ f₂ g₂ : u ⟶ v} (h₁ : LeftHomotopy f₁ g₁) (h₂ : LeftHomotopy f₂ g₂) :
+    LeftHomotopy (f₁ + f₂) (g₁ + g₂) where
+  hom := h₁.hom + h₂.hom
+  comm := by simp [← h₁.comm, ← h₂.comm, add_sub_add_comm]
+
+/-- homotopy is closed under composition (on the right) -/
+@[simps]
+def compRight {e f : u ⟶ v} (h : LeftHomotopy e f) (g : v ⟶ w) :
+    LeftHomotopy (e ≫ g) (f ≫ g) where
+  hom := h.hom ≫ g.left
+  comm := by simp [← reassoc_of% h.comm]
+
+/-- homotopy is closed under composition (on the left) -/
+@[simps]
+def compLeft {f g : v ⟶ w} (h : LeftHomotopy f g) (e : u ⟶ v) :
+    LeftHomotopy (e ≫ f) (e ≫ g) where
+  hom := e.right ≫ h.hom
+  comm := by simp [← reassoc_of% e.w, ← h.comm]
+
+/-- homotopy is closed under composition -/
+@[simps!]
+def comp {f₁ g₁ : u ⟶ v} {f₂ g₂ : v ⟶ w}
+    (h₁ : LeftHomotopy f₁ g₁) (h₂ : LeftHomotopy f₂ g₂) : LeftHomotopy (f₁ ≫ f₂) (g₁ ≫ g₂) :=
+  (h₁.compRight _).trans (h₂.compLeft _)
+
+/-- a variant of `LeftHomotopy.compRight` useful for dealing with homotopy equivalences. -/
+@[simps!]
+def compRightId {f : u ⟶ u} (h : LeftHomotopy f (𝟙 u)) (g : u ⟶ v) : LeftHomotopy (f ≫ g) g :=
+  (h.compRight g).trans (ofEq <| id_comp _)
+
+/-- a variant of `LeftHomotopy.compLeft` useful for dealing with homotopy equivalences. -/
+@[simps!]
+def compLeftId {f : v ⟶ v} (h : LeftHomotopy f (𝟙 v)) (g : u ⟶ v) : LeftHomotopy (g ≫ f) g :=
+  (h.compLeft g).trans (ofEq <| comp_id _)
+
+end LeftHomotopy
 
 namespace RightHomotopy
 
@@ -101,7 +177,7 @@ def compRight {e f : u ⟶ v} (h : RightHomotopy e f) (g : v ⟶ w) :
 def compLeft {f g : v ⟶ w} (h : RightHomotopy f g) (e : u ⟶ v) :
     RightHomotopy (e ≫ f) (e ≫ g) where
   hom := e.right ≫ h.hom
-  comm := by simp [← reassoc_of% e.w, ← h.comm]
+  comm := by simp [← h.comm]
 
 /-- homotopy is closed under composition -/
 @[simps!]
@@ -163,14 +239,60 @@ instance : (quotient V).Additive where
 
 instance : Functor.Additive (Quotient.functor (rightHomotopic V)) where
 
+section ZeroObject
+
 open ZeroObject
 
-instance [HasZeroObject V] : Inhabited (RightFreyd V) :=
-  ⟨(quotient V).obj 0⟩
+variable [HasZeroObject V]
 
-instance [HasZeroObject V] : HasZeroObject (RightFreyd V) :=
+instance : Inhabited (RightFreyd V) := ⟨(quotient V).obj 0⟩
+
+/--
+If `V` has zero objects, so does `RightFreyd V`.
+-/
+instance : HasZeroObject (RightFreyd V) :=
   ⟨(quotient V).obj 0, by
-    rw [IsZero.iff_id_eq_zero, ← (quotient V c).map_id, id_zero, Functor.map_zero]⟩
+    rw [IsZero.iff_id_eq_zero, ← (quotient V).map_id, id_zero, Functor.map_zero]⟩
+
+end ZeroObject
+
+section Cokernels
+
+variable [HasBinaryBiproducts V]
+
+variable {V} {u v : Arrow V} (f : u ⟶ v)
+
+def candidateCokernel : Arrow V := Arrow.mk (biprod.desc v.hom f.right)
+
+--  Arrow.mk (biprod.map (𝟙 v.right) (biprod.inl (X := v.left) (Y := u.right)))
+
+def candidateCokernelπ : v ⟶ candidateCokernel f := by
+  refine Arrow.homMk biprod.inl (𝟙 v.right) ?_
+  simp only [candidateCokernel, mk_hom]
+  erw [biprod.inl_desc, Category.comp_id]
+
+def candidateCokernelπ_condition : RightHomotopy (f ≫ candidateCokernelπ f) 0 where
+  hom := biprod.inr
+  comm := by
+    simp only [candidateCokernel, candidateCokernelπ, comp_right, homMk_right, Hom.zero_right,
+      mk_hom]
+    erw [Category.comp_id, biprod.inr_desc, sub_zero]
+
+
+#exit
+def candidateCokernelCofork : Cocone (parallelPair f 0) := by
+  refine CokernelCofork.ofπ ?_ ?_
+
+def candidateCokernelIsCokernel : IsColimit (candidateCokernelCofork f) := sorry
+
+instance : HasCokernels (Arrow V) where
+  has_colimit f := {
+    exists_colimit := Nonempty.intro {
+        cocone := candidateCokernel f
+        isColimit := candidateCokernelIsCokernel f}
+  }
+
+end Cokernels
 
 end RightFreyd
 

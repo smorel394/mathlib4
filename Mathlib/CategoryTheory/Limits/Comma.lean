@@ -12,6 +12,7 @@ public import Mathlib.CategoryTheory.Limits.Creates
 public import Mathlib.CategoryTheory.Limits.Unit
 public import Mathlib.CategoryTheory.Limits.Preserves.Finite
 public import Mathlib.CategoryTheory.Limits.Preserves.Creates.Finite
+public import Mathlib.CategoryTheory.Limits.Preserves.Shapes.Zero
 
 /-!
 # Limits and colimits in comma categories
@@ -185,6 +186,28 @@ instance preservesColimitsOfShape_snd [HasColimitsOfShape J A] [HasColimitsOfSha
       (coconeOfPreservesIsColimit _ (colimit.isColimit _) (colimit.isColimit _))
       (colimit.isColimit _)
 
+open ZeroObject
+
+/--
+If `A,B,T` have zero objects and `L,R` preserve zero morphisms, then `Comma L R` has a zero
+object. (Note that `A,B,T` automatically have zero morphisms, but we introduce the instances
+separately because this is better in practice.)
+-/
+instance [HasZeroObject A] [HasZeroObject B] [HasZeroMorphisms A] [HasZeroMorphisms B]
+    [HasZeroMorphisms T] [L.PreservesZeroMorphisms] [R.PreservesZeroMorphisms] :
+    HasZeroObject (Comma L R) where
+  zero := by
+    use Comma.mk 0 0 0
+    have : ∀ (u : Comma L R), Inhabited (Comma.mk 0 0 0 ⟶ u) :=
+      fun _ ↦ Inhabited.mk (CommaMorphism.mk 0 0 (by simp))
+    have : ∀ (u : Comma L R), Subsingleton (Comma.mk 0 0 0 ⟶ u) :=
+        fun _ ↦ Subsingleton.intro (fun f g ↦ by ext)
+    have : ∀ (u : Comma L R), Inhabited (u ⟶ Comma.mk 0 0 0) :=
+      fun _ ↦ Inhabited.mk (CommaMorphism.mk 0 0 (by simp))
+    have : ∀ (u : Comma L R), Subsingleton (u ⟶ Comma.mk 0 0 0) :=
+        fun _ ↦ Subsingleton.intro (fun f g ↦ by ext)
+    refine IsZero.mk ?_ ?_ <;> exact (fun _ ↦ Nonempty.intro (Unique.mk' _))
+
 end Comma
 
 namespace Arrow
@@ -226,6 +249,14 @@ instance preservesColimitsOfShape_leftFunc [HasColimitsOfShape J T] :
 instance preservesColimitsOfShape_rightFunc [HasColimitsOfShape J T] :
     PreservesColimitsOfShape J (Arrow.rightFunc : _ ⥤ T) := by
   apply Comma.preservesColimitsOfShape_snd
+
+open ZeroObject
+
+/--
+If `T` has a zero object, so does `Arrow T`.
+-/
+instance [HasZeroObject T] [HasZeroMorphisms T] : HasZeroObject (Arrow T) :=
+  inferInstanceAs (HasZeroObject (Comma (𝟭 T) (𝟭 T)))
 
 end Arrow
 
