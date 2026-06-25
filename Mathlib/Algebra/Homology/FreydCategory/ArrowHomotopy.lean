@@ -516,13 +516,6 @@ def rightHomotopyOfMono : RightHomotopy (CandidateKernel.ι f) 0 := by
     quotient_map_eq_zero_iff]
   exact Nonempty.intro (CandidateKernel.condition f)
 
-def hom_of_mono : weakPullback v.hom f.right ⟶ u.left :=
-  (rightHomotopyOfMono f).hom
-
-lemma hom_of_mono_spec : hom_of_mono f ≫ u.hom = weakPullback.snd _ _ := by
-  erw [← (rightHomotopyOfMono f).comm]
-  simp [CandidateKernel.ι]
-
 def lift : w ⟶ u := by
   set r : w.right ⟶ u.right := h.hom ≫ biprod.snd
   set l : w.left ⟶ u.left := by
@@ -589,6 +582,117 @@ instance : IsNormalMonoCategory (RightFreyd V) where
     exact Nonempty.intro (normalMonoOfMono f)
 
 end NormalMono
+
+namespace NormalEpi
+
+variable [HasFiniteProducts V]
+
+local instance : HasBinaryBiproducts V := HasBinaryBiproducts.of_hasBinaryProducts
+
+variable [Epi ((quotient V).map f)]
+
+def rightHomotopyOfEpi : RightHomotopy (CandidateCokernel.π f) 0 := by
+  refine ((quotient_map_eq_zero_iff (CandidateCokernel.π f)).mp ?_).some
+  rw [← cancel_epi ((quotient V).map f), ← (quotient V).map_comp, comp_zero,
+    quotient_map_eq_zero_iff]
+  exact Nonempty.intro (CandidateCokernel.condition f)
+
+lemma comm' (f : u ⟶ v) [Epi ((quotient V).map f)] : 𝟙 v.right = (rightHomotopyOfEpi f).hom ≫
+    biprod.fst ≫ v.hom + (rightHomotopyOfEpi f).hom ≫ biprod.snd ≫ Hom.right f:= by
+  have := (rightHomotopyOfEpi f).comm
+  simp only [CandidateCokernel.cokernel, CandidateCokernel.π, homMk_right, Hom.zero_right, mk_hom,
+    biprod.desc_eq] at this
+  erw [sub_zero, Preadditive.comp_add] at this
+  exact this
+
+variable [HasWeakKernels V]
+
+local instance : HasWeakEqualizers V := Preadditive.hasWeakEqualizers_of_hasWeakKernels
+
+local instance : HasWeakPullbacks V := hasWeakPullbacks_of_hasBinaryProducts_of_hasWeakKernels V
+
+variable {w : Arrow V} (g : u ⟶ w) (h : RightHomotopy (CandidateKernel.ι f ≫ g) 0)
+
+def desc : v ⟶ w := by
+  set r : v.right ⟶ w.right := (rightHomotopyOfEpi f).hom ≫ biprod.snd ≫ g.right
+  set l : v.left ⟶ w.left := by
+    refine ?_ ≫ h.hom
+    refine weakPullback.lift (𝟙 _ - v.hom ≫ (rightHomotopyOfEpi f).hom ≫ biprod.fst)
+      (v.hom ≫ (rightHomotopyOfEpi f).hom ≫ biprod.snd) ?_
+    simp only [Preadditive.sub_comp, id_comp, assoc]
+    rw [sub_eq_iff_eq_add, ← Preadditive.comp_add, add_comm, ← comm' f, comp_id]
+  refine Arrow.homMk l r ?_
+  simp only [assoc, l, r]
+  rw [← h.comm]
+  simp only [CandidateKernel.ι, comp_right, homMk_right, Hom.zero_right, sub_zero]
+  erw [weakPullback.lift_snd_assoc]
+  simp
+
+def f_desc : RightHomotopy (f ≫ desc f g h) g where
+  hom := by
+    refine - weakPullback.lift (f.right ≫ (rightHomotopyOfEpi f).hom ≫ biprod.fst)
+      (𝟙 _ - f.right ≫ (rightHomotopyOfEpi f).hom ≫ biprod.snd) ?_ ≫ h.hom
+    simp only [assoc, Preadditive.sub_comp, id_comp]
+    rw [eq_sub_iff_add_eq, ← Preadditive.comp_add, ← comm' f, comp_id]
+  comm := by
+    simp only [comp_right, Preadditive.neg_comp, assoc]
+    erw [← h.comm]
+    simp only [desc, CandidateKernel.ι, homMk_right, comp_right, Hom.zero_right, sub_zero]
+    erw [weakPullback.lift_snd_assoc]
+    simp
+
+variable {X : RightFreyd V} {a : (quotient V).obj u ⟶ X}
+  (eq : (quotient V).map (CandidateKernel.ι f) ≫ a = 0)
+
+def desc' : (quotient V).obj v ⟶ X := by
+  rw [← ((quotient V).map_surjective a).choose_spec] at eq
+  exact (quotient V).map (desc _ _ (homotopyOfEq _ _ eq))
+
+lemma f_desc' : (quotient V).map f ≫ desc' f eq = a := by
+  rw [← ((quotient V).map_surjective a).choose_spec] at eq
+  conv_rhs => rw [← ((quotient V).map_surjective a).choose_spec]
+  simp only [desc']
+  erw [← (quotient V).map_comp]
+  exact eq_of_rightHomotopy _ _ (f_desc _ _ (homotopyOfEq _ _ eq))
+
+@[reducible]
+def normalEpiOfEpi : NormalEpi ((quotient V).map f) where
+  W := (quotient V).obj (CandidateKernel.kernel f)
+  g := (quotient V).map (CandidateKernel.ι f)
+  w := (quotient_map_eq_zero_iff _).mpr (Nonempty.intro (CandidateKernel.condition f))
+  isColimit := {
+    desc s:= desc' f (CokernelCofork.condition s)
+    fac s j := match j with
+    | WalkingParallelPair.zero => by
+      simp only [parallelPair_obj_zero, Cofork.ofπ_ι_app, Cofork.app_zero_eq_comp_π_left,
+        CokernelCofork.condition]
+      conv_lhs => congr; erw [← (quotient V).map_comp]
+                  rw [eq_of_rightHomotopy _ _ (CandidateKernel.condition f)]
+      simp only [Functor.map_zero]
+      erw [zero_comp]
+    | WalkingParallelPair.one => f_desc' _ _
+    uniq s m eq := by
+      apply (cancel_epi ((quotient V).map f)).mp
+      rw [f_desc']
+      exact eq WalkingParallelPair.one
+  }
+
+set_option backward.isDefEq.respectTransparency false in
+instance : IsNormalEpiCategory (RightFreyd V) where
+  normalEpiOfEpi f _ := by
+    obtain ⟨f, rfl⟩ := (quotient V).map_surjective f
+    exact Nonempty.intro (normalEpiOfEpi f)
+
+end NormalEpi
+
+section Abelian
+
+variable [HasFiniteProducts V] [HasWeakKernels V]
+
+instance : Abelian (RightFreyd V) where
+  has_finite_products := sorry
+
+end Abelian
 
 end RightFreyd
 
