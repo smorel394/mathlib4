@@ -12,6 +12,7 @@ public import Mathlib.CategoryTheory.Quotient
 public import Mathlib.CategoryTheory.Preadditive.Comma
 public import Mathlib.CategoryTheory.Quotient.Preadditive
 public import Mathlib.CategoryTheory.Limits.Comma
+public import Mathlib.CategoryTheory.Preadditive.Basic
 
 /-!
 # Weak kernels and weak products
@@ -319,6 +320,27 @@ theorem hasWeakEqualizers_of_hasWeakLimit_parallelPair
     [∀ {X Y : C} {f g : X ⟶ Y}, HasWeakLimit (parallelPair f g)] : HasWeakEqualizers C :=
   { has_weakLimit := fun F => hasWeakLimit_of_iso (diagramIsoParallelPair F).symm }
 
+variable {C}
+
+/-- This is a slightly more convenient method to verify that a fork is a weak limit cone. It
+only asks for a proof of facts that carry any mathematical content -/
+@[simps]
+def Fork.IsWeakLimit.mk (t : Fork f g) (lift : ∀ s : Fork f g, s.pt ⟶ t.pt)
+    (fac : ∀ s : Fork f g, lift s ≫ Fork.ι t = Fork.ι s) : IsWeakLimit t :=
+  { lift
+    fac := fun s j =>
+      WalkingParallelPair.casesOn j (fac s) <| by
+        simp [← Category.assoc, fac]}
+
+/-- This is another convenient method to verify that a fork is a weak limit cone. It
+only asks for a proof of facts that carry any mathematical content, and allows access to the
+same `s` for all parts. -/
+def Fork.IsWeakLimit.mk' {X Y : C} {f g : X ⟶ Y} (t : Fork f g)
+    (create : ∀ s : Fork f g, { l // l ≫ t.ι = s.ι}) :
+    IsWeakLimit t :=
+  Fork.IsWeakLimit.mk t (fun s => (create s).1) (fun s => (create s).2)
+
+
 end WeakEqualizer
 
 section WeakKErnel
@@ -333,6 +355,8 @@ variable (C) in
 /-- `HasWeakKernels` represents the existence of weak kernels for every morphism. -/
 class HasWeakKernels : Prop where
   has_weakLimit : ∀ {X Y : C} (f : X ⟶ Y), HasWeakKernel f := by infer_instance
+
+attribute [instance 100] HasWeakKernels.has_weakLimit
 
 section
 
@@ -586,10 +610,56 @@ theorem hasWeakPullbacks_of_hasBinaryProducts_of_hasWeakKernels
     [HasBinaryProducts C] [HasWeakEqualizers C] : HasWeakPullbacks C where
       has_weakLimit F := hasWeakLimit_of_iso (diagramIsoCospan F).symm
 
-
-#check pullback.desc'
 end
 
 end WeakPullback
 
 end Limits
+
+namespace Preadditive
+
+open Preadditive Limits
+
+variable [Preadditive C] {X Y : C} {f g : X ⟶ Y}
+
+/-- A weak kernel of `f - g` is a weak equalizer of `f` and `g`. -/
+def isWeakLimitForkOfKernelFork {c : KernelFork (f - g)} (i : IsWeakLimit c) :
+    IsWeakLimit (forkOfKernelFork c) :=
+  Fork.IsWeakLimit.mk' _ fun s => ⟨i.lift (kernelForkOfFork s), i.fac _ _⟩
+
+@[simp]
+theorem isWeakLimitForkOfKernelFork_lift {c : KernelFork (f - g)} (i : IsWeakLimit c)
+    (s : Fork f g) : (isWeakLimitForkOfKernelFork i).lift s = i.lift (kernelForkOfFork s) :=
+  rfl
+
+/-- A weak equalizer of `f` and `g` is a weak kernel of `f - g`. -/
+def isWeakLimitKernelForkOfFork {c : Fork f g} (i : IsWeakLimit c) :
+    IsWeakLimit (kernelForkOfFork c) :=
+  Fork.IsWeakLimit.mk' _ fun s => ⟨i.lift (forkOfKernelFork s), i.fac _ _⟩
+
+variable (f g)
+
+/-- A preadditive category has a weak equalizer for `f` and `g` if it has a weak
+kernel for `f - g`. -/
+theorem hasWeakEqualizer_of_hasWeakKernel [HasWeakKernel (f - g)] : HasWeakEqualizer f g :=
+  HasWeakLimit.mk
+    { cone := forkOfKernelFork _
+      isWeakLimit := isWeakLimitForkOfKernelFork (weakEqualizerIsWeakEqualizer (f - g) 0) }
+
+/-- A preadditive category has a weak kernel for `f - g` if it has a weak equalizer
+for `f` and `g`. -/
+theorem hasWeakKernel_of_hasWeakEqualizer [HasWeakEqualizer f g] : HasWeakKernel (f - g) :=
+  HasWeakLimit.mk
+    { cone := kernelForkOfFork (weakEqualizer.fork f g)
+      isWeakLimit := isWeakLimitKernelForkOfFork (weakLimit.isWeakLimit (parallelPair f g)) }
+
+/-- If a preadditive category has all weak kernels, then it also has all weak equalizers. -/
+theorem hasWeakEqualizers_of_hasWeakKernels [HasWeakKernels C] : HasWeakEqualizers C :=
+  @hasWeakEqualizers_of_hasWeakLimit_parallelPair _ _ fun {_} {_} f g => hasWeakEqualizer_of_hasWeakKernel f g
+
+/-- If a preadditive category has all cokernels, then it also has all coequalizers. -/
+theorem hasCoequalizers_of_hasCokernels [HasCokernels C] : HasCoequalizers C :=
+  @hasCoequalizers_of_hasColimit_parallelPair _ _ fun {_} {_} f g =>
+    hasCoequalizer_of_hasCokernel f g
+
+end Preadditive
