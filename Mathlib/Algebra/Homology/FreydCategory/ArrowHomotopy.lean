@@ -12,6 +12,7 @@ public import Mathlib.CategoryTheory.Quotient
 public import Mathlib.CategoryTheory.Preadditive.Comma
 public import Mathlib.CategoryTheory.Quotient.Preadditive
 public import Mathlib.CategoryTheory.Limits.Comma
+public import Mathlib.Algebra.Homology.FreydCategory.WeakProduct
 
 /-!
 # Homotopies in the arrow category
@@ -246,7 +247,7 @@ lemma quotient_obj_surjective (X : RightFreyd V) :
     ∃ (u : Arrow V), (quotient _).obj u = X :=
   ⟨_, rfl⟩
 
-theorem eq_of_homotopy {u v : Arrow V} (f g : u ⟶ v) (h : RightHomotopy f g) :
+theorem eq_of_rightHomotopy {u v : Arrow V} (f g : u ⟶ v) (h : RightHomotopy f g) :
     (quotient V).map f = (quotient V).map g :=
   CategoryTheory.Quotient.sound _ ⟨h⟩
 
@@ -259,13 +260,13 @@ def homotopyOfEq {u v : Arrow V} (f g : u ⟶ v)
 lemma quotient_map_eq_zero_iff {u v : Arrow V} (f : u ⟶ v) :
     (quotient V).map f = 0 ↔ Nonempty (RightHomotopy f 0) :=
   ⟨fun h ↦ ⟨homotopyOfEq _ _ (by simpa using h)⟩,
-    fun ⟨h⟩ ↦ by simpa using eq_of_homotopy _ _ h⟩
+    fun ⟨h⟩ ↦ by simpa using eq_of_rightHomotopy _ _ h⟩
 
 lemma isEpi_of_right_iso [IsIso f.right] : Epi ((quotient V).map f) where
   left_cancellation g₁ g₂ eq := by
     obtain ⟨g₁, rfl⟩ := (quotient V).map_surjective g₁
     obtain ⟨g₂, rfl⟩ := (quotient V).map_surjective g₂
-    apply eq_of_homotopy
+    apply eq_of_rightHomotopy
     erw [← (quotient V).map_comp, ← (quotient V).map_comp] at eq
     set h := homotopyOfEq _ _ eq
     exact ⟨inv f.right ≫ h.hom, by simp [← h.comm]⟩
@@ -289,7 +290,9 @@ end ZeroObject
 
 section Cokernels
 
-variable [HasBinaryBiproducts V]
+variable [HasFiniteProducts V]
+
+local instance : HasBinaryBiproducts V := HasBinaryBiproducts.of_hasBinaryProducts
 
 namespace Candidate
 
@@ -355,7 +358,7 @@ variable (f)
 def candidateCokernelCofork : Cocone (parallelPair ((quotient V).map f) 0) := by
   refine CokernelCofork.ofπ ((quotient V).map (Candidate.π f)) ?_
   rw [← (quotient V).map_comp]
-  exact eq_of_homotopy _ _ (Candidate.condition f)
+  exact eq_of_rightHomotopy _ _ (Candidate.condition f)
 
 def candidateCokernelCoforkIsCokernel : IsColimit (candidateCokernelCofork f) where
   desc s := Candidate.desc' f (CokernelCofork.condition s)
@@ -378,6 +381,136 @@ instance : HasCokernels (RightFreyd V) where
         isColimit := candidateCokernelCoforkIsCokernel f}}
 
 end Cokernels
+
+section Kernels
+
+variable [HasBinaryProducts V] [HasWeakKernels V]
+
+local instance : HasWeakEqualizers V := Preadditive.hasWeakEqualizers_of_hasWeakKernels
+
+local instance : HasWeakPullbacks V := hasWeakPullbacks_of_hasBinaryProducts_of_hasWeakKernels V
+
+namespace Candidate
+
+variable {u v : Arrow V} (f : u ⟶ v)
+
+def kernel : Arrow V := Arrow.mk (weakPullback.fst (weakPullback.snd v.hom f.right) u.hom)
+
+def ι : kernel f ⟶ u := by
+  refine Arrow.homMk (weakPullback.snd _ _) (weakPullback.snd _ _) ?_
+  simp only [kernel, mk_hom]
+  erw [← weakPullback.condition]
+  rfl
+
+def condition' : RightHomotopy (ι f ≫ f) 0 where
+  hom := weakPullback.fst _ _
+  comm := by
+    simp only [ι, comp_right, homMk_right, Hom.zero_right, sub_zero]
+    erw [weakPullback.condition]
+    rfl
+
+lemma isMono_of_witness_snd {X Y Z : V} (a : X ⟶ Z) (b : Y ⟶ Z) :
+    Mono ((quotient V).map (Arrow.homMk (f := Arrow.mk (weakPullback.fst a b)) (g := Arrow.mk b)
+    (weakPullback.snd _ _) a weakPullback.condition.symm )) where
+  right_cancellation g₁ g₂ eq := by
+    obtain ⟨g₁, rfl⟩ := (quotient V).map_surjective g₁
+    obtain ⟨g₂, rfl⟩ := (quotient V).map_surjective g₂
+    apply eq_of_rightHomotopy
+    erw [← (quotient V).map_comp, ← (quotient V).map_comp] at eq
+    set h := homotopyOfEq _ _ eq
+    refine ⟨weakPullback.lift (g₁.right - g₂.right) h.hom ?_, ?_⟩
+    · erw [Preadditive.sub_comp]
+      exact h.comm
+    · simp only [mk_hom]
+      erw [weakPullback.lift_fst]
+
+instance isMono_ι : Mono ((quotient V).map (ι f)) := isMono_of_witness_snd _ _
+
+variable {w : Arrow V} (g : w ⟶ u) (h : RightHomotopy (g ≫ f) 0)
+
+def lift : w ⟶ kernel f := by
+  refine Arrow.homMk (weakPullback.lift (w.hom ≫ weakPullback.lift h.hom g.right
+    (by simp [← h.comm])) g.left (by simp only [assoc, Arrow.w]; erw [weakPullback.lift_snd]))
+    (weakPullback.lift h.hom g.right (by simp [← h.comm])) ?_
+  simp only [kernel, mk_hom]
+  erw [weakPullback.lift_fst]
+  rfl
+
+@[reassoc]
+lemma lift_ι : lift f g h ≫ ι f = g := by
+  simp only [kernel, lift, ι]
+  ext
+  · simp only [comp_left, homMk_left]
+    erw [weakPullback.lift_snd]
+  · simp only [comp_right, homMk_right]
+    erw [weakPullback.lift_snd]
+
+variable {X : RightFreyd V} {a : X ⟶ (quotient V).obj u} (eq : a ≫ (quotient V).map f = 0)
+
+def lift' : X ⟶ (quotient V).obj (kernel f) := by
+  rw [← ((quotient V).map_surjective a).choose_spec] at eq
+  exact (quotient V).map (Candidate.lift _ _ (homotopyOfEq _ _ eq))
+
+lemma lift'_ι : lift' f eq ≫ (quotient V).map (ι f) = a := by
+  rw [← ((quotient V).map_surjective a).choose_spec] at eq
+  conv_rhs => rw [← ((quotient V).map_surjective a).choose_spec,
+                      ← Candidate.lift_ι _ _ (homotopyOfEq _ _ eq)]
+  rfl
+
+end Candidate
+
+variable (f)
+
+def candidateKernelFork : Cone (parallelPair ((quotient V).map f) 0) := by
+  refine KernelFork.ofι ((quotient V).map (Candidate.ι f)) ?_
+  rw [← (quotient V).map_comp]
+  exact eq_of_rightHomotopy _ _ (Candidate.condition' f)
+
+def candidateKernelForkIsKernel : IsLimit (candidateKernelFork f) where
+  lift s := Candidate.lift' f (KernelFork.condition s)
+  fac s j :=
+    match j with
+    | WalkingParallelPair.zero => Candidate.lift'_ι _ _
+    | WalkingParallelPair.one => by simp
+  uniq s m eq :=
+    (cancel_mono ((quotient V).map (Candidate.ι f))).mp ((eq WalkingParallelPair.zero).trans
+    (Candidate.lift'_ι f (KernelFork.condition s)).symm)
+
+instance : HasKernels (RightFreyd V) where
+  has_limit {X Y} f := {
+    exists_limit := by
+      obtain ⟨f, rfl⟩ := (quotient V).map_surjective f
+      exact Nonempty.intro {
+        cone := candidateKernelFork f
+        isLimit := candidateKernelForkIsKernel f}}
+
+end Kernels
+
+section NormalMono
+
+variable [HasFiniteProducts V]
+
+variable (f)
+
+def Z : RightFreyd V := (quotient V).obj (Candidate.cokernel f)
+
+def ge : (quotient V).obj v ⟶ Z f := (quotient V).map (Candidate.π f)
+
+lemma we : (quotient V).map f ≫ ge f = 0 :=
+  (quotient_map_eq_zero_iff _).mpr (Nonempty.intro (Candidate.condition f))
+
+def lime : IsLimit (KernelFork.ofι ((quotient V).map f) (we f)) where
+  lift := _
+  fac := _
+  uniq := _
+
+variable [HasWeakKernels V]
+
+local instance : HasWeakEqualizers V := Preadditive.hasWeakEqualizers_of_hasWeakKernels
+
+local instance : HasWeakPullbacks V := hasWeakPullbacks_of_hasBinaryProducts_of_hasWeakKernels V
+
+end NormalMono
 
 end RightFreyd
 

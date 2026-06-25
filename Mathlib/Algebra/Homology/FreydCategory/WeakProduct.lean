@@ -41,6 +41,10 @@ structure IsWeakLimit (t : Cone F) where
 
 attribute [reassoc (attr := simp)] IsWeakLimit.fac
 
+def IsWeakLimit_of_isLimit {t : Cone F} (l : IsLimit t) : IsWeakLimit t where
+  lift := l.lift
+  fac := l.fac
+
 /-- `WeakLimitCone F` contains a cone over `F` together with the information that it is
 a weak limit. -/
 structure WeakLimitCone (F : J ⥤ C) where
@@ -49,10 +53,17 @@ structure WeakLimitCone (F : J ⥤ C) where
   /-- The proof that is the limit cone -/
   isWeakLimit : IsWeakLimit cone
 
+def WeakLimitCone_of_limitCone {F : J ⥤ C} (c : LimitCone F) : WeakLimitCone F where
+  cone := c.cone
+  isWeakLimit := IsWeakLimit_of_isLimit c.isLimit
+
 /-- `HasWeakLimit F` represents the mere existence of a weak limit for `F`. -/
 class HasWeakLimit (F : J ⥤ C) : Prop where mk' ::
   /-- There is some weak limit cone for `F` -/
   exists_weakLimit : Nonempty (WeakLimitCone F)
+
+lemma HasWeakLimit_of_hasLimit (F : J ⥤ C) [HasLimit F] : HasWeakLimit F where
+  exists_weakLimit := Nonempty.intro (WeakLimitCone_of_limitCone (getLimitCone F))
 
 theorem HasWeakLimit.mk {F : J ⥤ C} (d : WeakLimitCone F) : HasWeakLimit F :=
   ⟨Nonempty.intro d⟩
@@ -71,6 +82,10 @@ class HasWeakLimitsOfShape : Prop where
 instance (priority := 100) hasWeakLimitOfHasWeakLimitsOfShape {J : Type u₁} [Category.{v₁} J]
     [HasWeakLimitsOfShape J C] (F : J ⥤ C) : HasWeakLimit F :=
   HasWeakLimitsOfShape.has_weakLimit F
+
+instance (priority := 100) hasWeakLimitsOfShapeOfHasLimitsOfShape {J : Type*} [Category* J]
+    [HasLimitsOfShape J C] : HasWeakLimitsOfShape J C where
+      has_weakLimit F := HasWeakLimit_of_hasLimit F
 
 -- Interface to the `HasWeakLimit` class.
 /-- An arbitrary choice of weak limit cone for a functor. -/
@@ -156,68 +171,7 @@ def ofRightAdjoint {left : Cone F ⥤ Cone G} {right : Cone G ⥤ Cone F}
       lift s := (adj.homEquiv s c (t.liftConeMorphism _)).hom
       fac s j := by simp
 
-/-
-/-- Given two functors which have equivalent categories of cones, we can transport a limiting cone
-across the equivalence.
--/
-def ofConeEquiv (h : Cone G ≌ Cone F) {c : Cone G} :
-    IsWeakLimit (h.functor.obj c) ≃ IsWeakLimit c where
-  toFun P := ofIsoWeakLimit (ofRightAdjoint h.toAdjunction P) (h.unitIso.symm.app c)
-  invFun := ofRightAdjoint h.symm.toAdjunction
-  left_inv l := by
-    dsimp
-    dsimp [ofRightAdjoint, ofIsoWeakLimit, liftConeMorphism]
-    ext c'
-    dsimp [IsWeakLimit.lift]
-    rw [(h.symm.toAdjunction.homEquiv c' c).apply_eq_iff_eq_symm_apply]
-  right_inv := by sorry
-
-#exit
-@[to_dual (attr := simp)]
-theorem ofConeEquiv_apply_lift {D : Type u₄} [Category.{v₄} D] {G : K ⥤ D} (h : Cone G ≌ Cone F)
-    {c : Cone G} (P : IsLimit (h.functor.obj c)) (s) :
-    (ofConeEquiv h P).lift s =
-      ((h.unitIso.hom.app s).hom ≫ (h.inverse.map (P.liftConeMorphism (h.functor.obj s))).hom) ≫
-        (h.unitIso.inv.app c).hom :=
-  rfl
-
-/-- A cone postcomposed with a natural isomorphism is a weak limit cone
-if and only if the original cone is.
--/
---@[to_dual precomposeInvEquiv
---/-- A cocone precomposed with the inverse of a natural isomorphism is a colimit cocone
---if and only if the original cocone is.
----/]
-/-
-def postcomposeHomEquiv {F G : J ⥤ C} (α : F ≅ G) (c : Cone F) :
-    IsWeakLimit ((Cone.postcompose α.hom).obj c) ≃ IsWeakLimit c :=
-  ofConeEquiv (Cone.postcomposeEquivalence α)
-
-/-- A cone postcomposed with the inverse of a natural isomorphism is a limit cone
-if and only if the original cone is.
--/
-@[to_dual precomposeHomEquiv
-/-- A cocone precomposed with a natural isomorphism is a colimit cocone
-if and only if the original cocone is.
--/]
-def postcomposeInvEquiv {F G : J ⥤ C} (α : F ≅ G) (c : Cone G) :
-    IsLimit ((Cone.postcompose α.inv).obj c) ≃ IsLimit c :=
-  postcomposeHomEquiv α.symm c
-
-/-- Constructing an equivalence `IsLimit c ≃ IsLimit d` from a natural isomorphism
-between the underlying functors, and then an isomorphism between `c` transported along this and `d`.
--/
-@[to_dual
-/-- Constructing an equivalence `isColimit c ≃ isColimit d` from a natural isomorphism
-between the underlying functors, and then an isomorphism between `c` transported along this and `d`.
--/]
-def equivOfNatIsoOfIso {F G : J ⥤ C} (α : F ≅ G) (c : Cone F) (d : Cone G)
-    (w : (Cone.postcompose α.hom).obj c ≅ d) : IsLimit c ≃ IsLimit d :=
-  (postcomposeHomEquiv α _).symm.trans (equivIsoLimit w)
--/
-
 end IsWeakLimit
-
 
 /-- If a functor `F` has a weak limit, so does any naturally isomorphic functor.
 -/
@@ -315,6 +269,9 @@ i.e. if it has a weak equalizer for every parallel pair of morphisms. -/
 abbrev HasWeakEqualizers :=
   HasWeakLimitsOfShape WalkingParallelPair C
 
+instance (priority := 100) HasWeakEqualizersOfHasEqualizers [HasEqualizers C] :
+    HasWeakEqualizers C where
+
 /-- If `C` has all weak limits of diagrams `parallelPair f g`, then it has all weak equalizers -/
 theorem hasWeakEqualizers_of_hasWeakLimit_parallelPair
     [∀ {X Y : C} {f g : X ⟶ Y}, HasWeakLimit (parallelPair f g)] : HasWeakEqualizers C :=
@@ -340,7 +297,6 @@ def Fork.IsWeakLimit.mk' {X Y : C} {f g : X ⟶ Y} (t : Fork f g)
     IsWeakLimit t :=
   Fork.IsWeakLimit.mk t (fun s => (create s).1) (fun s => (create s).2)
 
-
 end WeakEqualizer
 
 section WeakKErnel
@@ -351,12 +307,19 @@ variable [HasZeroMorphisms C]
 abbrev HasWeakKernel {X Y : C} (f : X ⟶ Y) : Prop :=
   HasWeakLimit (parallelPair f 0)
 
+lemma HasWeakKernelOfHasKernel {X Y : C} (f : X ⟶ Y) [HasKernel f] : HasWeakKernel f :=
+  HasWeakLimit_of_hasLimit _
+
 variable (C) in
 /-- `HasWeakKernels` represents the existence of weak kernels for every morphism. -/
 class HasWeakKernels : Prop where
   has_weakLimit : ∀ {X Y : C} (f : X ⟶ Y), HasWeakKernel f := by infer_instance
 
 attribute [instance 100] HasWeakKernels.has_weakLimit
+
+instance (priority := 100) HasWeakKernelsOfHasKernels [HasKernels C] :
+    HasWeakKernels C where
+      has_weakLimit _ := HasWeakKernelOfHasKernel _
 
 section
 
@@ -485,6 +448,29 @@ theorem weakPullback.condition {X Y Z : C} {f : X ⟶ Z} {g : Y ⟶ Z} [HasWeakP
     weakPullback.fst f g ≫ f = weakPullback.snd f g ≫ g :=
   PullbackCone.condition _
 
+/-- Given such a diagram, then there is a natural morphism `W ×ₛ X ⟶ Y ×ₜ Z`.
+
+```
+W ⟶ Y
+  ↘   ↘
+  S ⟶ T
+  ↗   ↗
+X ⟶ Z
+```
+-/
+abbrev weakPullback.map {W X Y Z S T : C} (f₁ : W ⟶ S) (f₂ : X ⟶ S) [HasWeakPullback f₁ f₂]
+    (g₁ : Y ⟶ T) (g₂ : Z ⟶ T) [HasWeakPullback g₁ g₂] (i₁ : W ⟶ Y) (i₂ : X ⟶ Z) (i₃ : S ⟶ T)
+    (eq₁ : f₁ ≫ i₃ = i₁ ≫ g₁) (eq₂ : f₂ ≫ i₃ = i₂ ≫ g₂) :
+    weakPullback f₁ f₂ ⟶ weakPullback g₁ g₂ :=
+  weakPullback.lift (weakPullback.fst f₁ f₂ ≫ i₁) (weakPullback.snd f₁ f₂ ≫ i₂)
+    (by simp only [Category.assoc, ← eq₁, ← eq₂, weakPullback.condition_assoc])
+
+/-- A map `X ×ₛ Y ⟶ X ×ₜ Y` given `S ⟶ T`. -/
+abbrev weakPullback.mapDesc {X Y S T : C} (f : X ⟶ S) (g : Y ⟶ S) (i : S ⟶ T) [HasWeakPullback f g]
+    [HasWeakPullback (f ≫ i) (g ≫ i)] : weakPullback f g ⟶ weakPullback (f ≫ i) (g ≫ i) :=
+  weakPullback.map f g (f ≫ i) (g ≫ i) (𝟙 _) (𝟙 _) i (Category.id_comp _).symm
+  (Category.id_comp _).symm
+
 /-- The pullback cone reconstructed using `PullbackCone.mk` from a pullback cone that is a
 weak limit, is also a weak limit. -/
 def PullbackCone.mkSelfIsWeakLimit {X Y Z : C} {f : X ⟶ Z} {g : Y ⟶ Z} {t : PullbackCone f g}
@@ -576,6 +562,9 @@ has a weak pullback for every pair of morphisms with the same codomain. -/
 abbrev HasWeakPullbacks :=
   HasWeakLimitsOfShape WalkingCospan C
 
+instance (priority := 100) HasWeakPullbacksOfHasPullbacks [HasPullbacks C] :
+    HasWeakPullbacks C where
+
 variable (f : X ⟶ Z) (g : Y ⟶ Z)
 
 set_option backward.isDefEq.respectTransparency false in
@@ -655,11 +644,7 @@ theorem hasWeakKernel_of_hasWeakEqualizer [HasWeakEqualizer f g] : HasWeakKernel
 
 /-- If a preadditive category has all weak kernels, then it also has all weak equalizers. -/
 theorem hasWeakEqualizers_of_hasWeakKernels [HasWeakKernels C] : HasWeakEqualizers C :=
-  @hasWeakEqualizers_of_hasWeakLimit_parallelPair _ _ fun {_} {_} f g => hasWeakEqualizer_of_hasWeakKernel f g
-
-/-- If a preadditive category has all cokernels, then it also has all coequalizers. -/
-theorem hasCoequalizers_of_hasCokernels [HasCokernels C] : HasCoequalizers C :=
-  @hasCoequalizers_of_hasColimit_parallelPair _ _ fun {_} {_} f g =>
-    hasCoequalizer_of_hasCokernel f g
+  @hasWeakEqualizers_of_hasWeakLimit_parallelPair _ _
+  fun {_} {_} f g => hasWeakEqualizer_of_hasWeakKernel f g
 
 end Preadditive
