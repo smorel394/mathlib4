@@ -11,6 +11,9 @@ public import Mathlib.Algebra.Homology.FreydCategory.Cokernels
 /-!
 # Freyd categories are abelian
 
+If `V` is a preadditive category with finite products and weak kernels, then `RightFreyd V`
+is an abelian category.
+
 -/
 
 @[expose] public section
@@ -149,25 +152,23 @@ end NormalMono
 
 namespace NormalEpi
 
-variable [HasFiniteProducts V]
-
-local instance : HasBinaryBiproducts V := HasBinaryBiproducts.of_hasBinaryProducts
-
 variable [Epi ((quotient V).map f)]
 
+/-- If `f` is a morphism of `Arrow V` whose image in `RightFreyd V` is an epimorphism, then
+`CandidateCokernel.ι f` is right homotopic to `0`. -/
 def rightHomotopyOfEpi : RightHomotopy (CandidateCokernel.π f) 0 := by
   refine ((quotient_map_eq_zero_iff (CandidateCokernel.π f)).mp ?_).some
   rw [← cancel_epi ((quotient V).map f), ← (quotient V).map_comp, comp_zero,
     quotient_map_eq_zero_iff]
   exact Nonempty.intro (CandidateCokernel.condition f)
 
+/-- This is more convenient form of the homotopy relation of `rightHomotopyOfEpi`. -/
 lemma comm' (f : u ⟶ v) [Epi ((quotient V).map f)] : 𝟙 v.right = (rightHomotopyOfEpi f).hom ≫
     biprod.fst ≫ v.hom + (rightHomotopyOfEpi f).hom ≫ biprod.snd ≫ Hom.right f:= by
   have := (rightHomotopyOfEpi f).comm
   simp only [CandidateCokernel.cokernel, CandidateCokernel.π, homMk_right, Hom.zero_right, mk_hom,
     biprod.desc_eq] at this
-  erw [sub_zero, Preadditive.comp_add] at this
-  exact this
+  exact Eq.trans (sub_zero _).symm (this.trans (Preadditive.comp_add _ _ _ _ _ _))
 
 variable [HasWeakKernels V]
 
@@ -177,21 +178,31 @@ local instance : HasWeakPullbacks V := hasWeakPullbacks_of_hasBinaryProducts_of_
 
 variable {w : Arrow V} (g : u ⟶ w) (h : RightHomotopy (CandidateKernel.ι f ≫ g) 0)
 
+/-- Let `f : u ⟶ v` and `g : u ⟶ w` be morphisms in `Arrow V` such that
+`CandidateKernel.ι f ≫ g` and `0` are right homotopic, and suppose that the
+image of `f` in `RightFreyd V` is an epimorphism. In `RightFreyd V`, the image of
+`g` should descend to a morphism from `(quotient V).obj v`. This is a candidate for this
+descended morphism, in `Arrow V`. -/
 def desc : v ⟶ w := by
   set r : v.right ⟶ w.right := (rightHomotopyOfEpi f).hom ≫ biprod.snd ≫ g.right
   set l : v.left ⟶ w.left := by
     refine ?_ ≫ h.hom
-    refine weakPullback.lift (𝟙 _ - v.hom ≫ (rightHomotopyOfEpi f).hom ≫ biprod.fst)
-      (v.hom ≫ (rightHomotopyOfEpi f).hom ≫ biprod.snd) ?_
+    refine (weakPullback.lift (𝟙 _ - v.hom ≫ (rightHomotopyOfEpi f).hom ≫ biprod.fst)
+      (v.hom ≫ (rightHomotopyOfEpi f).hom ≫ biprod.snd) ?_)
     simp only [Preadditive.sub_comp, id_comp, assoc]
     rw [sub_eq_iff_eq_add, ← Preadditive.comp_add, add_comm, ← comm' f, comp_id]
   refine Arrow.homMk l r ?_
   simp only [assoc, l, r]
   rw [← h.comm]
   simp only [CandidateKernel.ι, comp_right, homMk_right, Hom.zero_right, sub_zero]
-  erw [weakPullback.lift_snd_assoc]
-  simp
+  refine (weakPullback.lift_snd_assoc _ _ _ _).trans (by simp)
 
+/-- Let `f : u ⟶ v` and `g : u ⟶ w` be morphisms in `Arrow V` such that
+`CandidateKernel.ι f ≫ g` and `0` are right homotopic, and suppose that the
+image of `f` in `RightFreyd V` is an epimorphism. In `RightFreyd V`, the image of
+`g` should descend to a morphism from `(quotient V).obj v`. In `desc`, we constructed
+a candidate in `Arrow V` for this descent. This gives the right homotopy from
+`f ≫ descent g` to `g`, proving that the candidate works. -/
 def f_desc : RightHomotopy (f ≫ desc f g h) g where
   hom := by
     refine - weakPullback.lift (f.right ≫ (rightHomotopyOfEpi f).hom ≫ biprod.fst)
@@ -202,16 +213,23 @@ def f_desc : RightHomotopy (f ≫ desc f g h) g where
     simp only [comp_right, Preadditive.neg_comp, assoc]
     erw [← h.comm]
     simp only [desc, CandidateKernel.ι, homMk_right, comp_right, Hom.zero_right, sub_zero]
-    erw [weakPullback.lift_snd_assoc]
-    simp
+    rw [sub_eq_iff_comm, sub_neg_eq_add, add_comm, ← eq_sub_iff_add_eq]
+    exact (weakPullback.lift_snd_assoc _ _ _ _).trans (by simp)
 
 variable {X : RightFreyd V} {a : (quotient V).obj u ⟶ X}
   (eq : (quotient V).map (CandidateKernel.ι f) ≫ a = 0)
 
+/-- Let `f : u ⟶ v` be a morphism in `Arrow V` such that the image of `f` in `RightFreyd V`
+is an epimorphism. Let `a : (quotient V).obj u ⟶ X` be a morphism in `RightFreyd v` such
+that `kernel f ≫ a = 0`. Then `a` descends tio a morphism `(quotient V).obj u ⟶ X`. -/
 def desc' : (quotient V).obj v ⟶ X := by
   rw [← ((quotient V).map_surjective a).choose_spec] at eq
   exact (quotient V).map (desc _ _ (homotopyOfEq _ _ eq))
 
+/-- Let `f : u ⟶ v` be a morphism in `Arrow V` such that the image of `f` in `RightFreyd V`
+is an epimorphism. Let `a : (quotient V).obj u ⟶ X` be a morphism in `RightFreyd v` such
+that `kernel f ≫ a = 0`. Then the descent of `a` to a morphism `(quotient V).obj u ⟶ X` constucted
+in `desc'` satisfies the descent condition. -/
 lemma f_desc' : (quotient V).map f ≫ desc' f eq = a := by
   rw [← ((quotient V).map_surjective a).choose_spec] at eq
   conv_rhs => rw [← ((quotient V).map_surjective a).choose_spec]
@@ -219,6 +237,8 @@ lemma f_desc' : (quotient V).map f ≫ desc' f eq = a := by
   erw [← (quotient V).map_comp]
   exact eq_of_rightHomotopy _ _ (f_desc _ _ (homotopyOfEq _ _ eq))
 
+/-- If `f` is a morphism of `Arrow V` such that `(quotient V).map f` is an epimorphism, then
+`(quotient V).map f` is a normal epimorphism. -/
 @[reducible]
 def normalEpiOfEpi : NormalEpi ((quotient V).map f) where
   W := (quotient V).obj (CandidateKernel.kernel f)
@@ -230,10 +250,10 @@ def normalEpiOfEpi : NormalEpi ((quotient V).map f) where
     | WalkingParallelPair.zero => by
       simp only [parallelPair_obj_zero, Cofork.ofπ_ι_app, Cofork.app_zero_eq_comp_π_left,
         CokernelCofork.condition]
-      conv_lhs => congr; erw [← (quotient V).map_comp]
+      conv_lhs => congr; change (quotient V).map (CandidateKernel.ι f ≫ f)
                   rw [eq_of_rightHomotopy _ _ (CandidateKernel.condition f)]
       simp only [Functor.map_zero]
-      erw [zero_comp]
+      exact zero_comp
     | WalkingParallelPair.one => f_desc' _ _
     uniq s m eq := by
       apply (cancel_epi ((quotient V).map f)).mp
@@ -242,6 +262,7 @@ def normalEpiOfEpi : NormalEpi ((quotient V).map f) where
   }
 
 set_option backward.isDefEq.respectTransparency false in
+/-- If `V` has finite products and weak kernels, then `RightFreyd V` is a normal epi category. -/
 instance : IsNormalEpiCategory (RightFreyd V) where
   normalEpiOfEpi f _ := by
     obtain ⟨f, rfl⟩ := (quotient V).map_surjective f
@@ -250,8 +271,6 @@ instance : IsNormalEpiCategory (RightFreyd V) where
 end NormalEpi
 
 section Abelian
-
-variable [HasFiniteProducts V]
 
 instance : HasFiniteProducts (Arrow V) where
   out _ := inferInstance
@@ -262,8 +281,11 @@ instance : HasFiniteProducts (RightFreyd V) :=
 
 variable [HasWeakKernels V]
 
+/-- If `V` has finite products and weak kernels, then `RightFreyd V` is an abelian category. -/
 instance : Abelian (RightFreyd V) where
 
 end Abelian
 
 end RightFreyd
+
+end CategoryTheory.Preadditive
