@@ -212,6 +212,8 @@ instance rightHomotopy_congruence : Congruence (rightHomotopic V) where
 
 end Arrow
 
+
+#exit
 variable (V)
 
 /-- `RightFreyd V` is the category of arrows in `V`,
