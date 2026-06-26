@@ -694,7 +694,7 @@ instance : HasFiniteProducts (Arrow V) where
 
 instance : HasFiniteProducts (RightFreyd V) :=
   have : (quotient V).EssSurj := inferInstance
-  (quotient V).hasFiniteProductsOfAdditiveEssSurj
+  (quotient V).hasFiniteProducts_of_additive_of_essSurj
 
 variable [HasWeakKernels V]
 
