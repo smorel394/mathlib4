@@ -12,7 +12,7 @@ public import Mathlib.CategoryTheory.Quotient
 public import Mathlib.CategoryTheory.Preadditive.Comma
 public import Mathlib.CategoryTheory.Quotient.Preadditive
 public import Mathlib.CategoryTheory.Limits.Comma
-public import Mathlib.Algebra.Homology.FreydCategory.WeakProduct
+public import Mathlib.Algebra.Homology.FreydCategory.WeakLimits
 
 /-!
 # Homotopies in the arrow category
