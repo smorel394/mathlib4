@@ -687,19 +687,18 @@ end NormalEpi
 
 section Abelian
 
-variable [HasFiniteProducts V] [HasWeakKernels V]
+variable [HasFiniteProducts V]
 
-lemma hasBinaryProducts : HasBinaryProducts (RightFreyd V) :=
+instance : HasFiniteProducts (Arrow V) where
+  out _ := inferInstance
+
+instance : HasFiniteProducts (RightFreyd V) :=
   have : (quotient V).EssSurj := inferInstance
-  have (X Y : RightFreyd V) : HasBinaryProduct X Y :=
-    hasLimit_of_iso (show Limits.pair ((quotient V).obj ((quotient V).objPreimage X))
-      ((quotient V).obj ((quotient V).objPreimage Y)) ≅ _ from
-      mapPairIso ((quotient V).objObjPreimageIso X) ((quotient V).objObjPreimageIso Y))
-  hasBinaryProducts_of_hasLimit_pair (RightFreyd V)
+  (quotient V).hasFiniteProductsOfAdditiveEssSurj
 
+variable [HasWeakKernels V]
 
 instance : Abelian (RightFreyd V) where
-  has_finite_products := sorry
 
 end Abelian
 
