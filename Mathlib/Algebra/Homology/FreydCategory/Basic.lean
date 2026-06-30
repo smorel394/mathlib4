@@ -23,6 +23,28 @@ variable (V : Type*) [Category* V] [Preadditive V]
 
 namespace CategoryTheory.Preadditive
 
+section RightFunctor
+
+variable [HasZeroObject V]
+
+/-- If `V` has a zero object, the functor from `V` to `Arrow V` that sends an object `X`
+to the arrow `0 ⟶ X`. -/
+def rightFunctor : V ⥤ Arrow V where
+  obj X := Arrow.mk ((isZero_zero V).to_ X)
+  map f := Arrow.homMk 0 f (HasZeroObject.from_zero_ext _ _)
+  map_id _ := by
+    ext
+    · exact HasZeroObject.from_zero_ext _ _
+    · rfl
+
+instance : (rightFunctor V).Additive where
+  map_add {_ _ _ _} := by
+    ext
+    · exact HasZeroObject.from_zero_ext _ _
+    · rfl
+
+end RightFunctor
+
 /-- If `V` is a preadditive category, then `RightFreyd V` is the category of arrows in `V`,
 with morphisms identified when they are right homotopic. -/
 def RightFreyd :=
@@ -51,16 +73,7 @@ instance : (quotient V).EssSurj := Quotient.essSurj_functor _
 
 instance : (quotient V).Additive where
 
---instance : Functor.Additive (Quotient.functor (rightHomotopic V)) where
-
 variable {V}
-
-/-
--- Is this used?
-lemma quotient_obj_surjective (X : RightFreyd V) :
-    ∃ (u : Arrow V), (quotient _).obj u = X :=
-  ⟨_, rfl⟩
--/
 
 /-- If two morphisms in `Arrow V` are right homotopic, then they become equal in the right
 Freyd category. -/
@@ -74,7 +87,12 @@ def homotopyOfEq {u v : Arrow V} (f g : u ⟶ v)
     (w : (quotient V).map f = (quotient V).map g) : RightHomotopy f g :=
   ((Quotient.functor_map_eq_iff _ _ _).mp w).some
 
-variable {u v : Arrow V} (f : u ⟶ v)
+variable {u v : Arrow V} (f g : u ⟶ v)
+
+lemma quotient_map_eq_iff :
+    (quotient V).map f = (quotient V).map g ↔ Nonempty (RightHomotopy f g) :=
+  ⟨fun h ↦ ⟨homotopyOfEq _ _ (by simpa using h)⟩,
+    fun ⟨h⟩ ↦ by simpa using eq_of_rightHomotopy _ _ h⟩
 
 lemma quotient_map_eq_zero_iff : (quotient V).map f = 0 ↔ Nonempty (RightHomotopy f 0) :=
   ⟨fun h ↦ ⟨homotopyOfEq _ _ (by simpa using h)⟩,
@@ -91,7 +109,55 @@ lemma isEpi_of_right_iso [IsIso f.right] : Epi ((quotient V).map f) where
     set h : RightHomotopy (f ≫ g₁) (f ≫ g₂) := homotopyOfEq _ _ eq
     exact ⟨inv f.right ≫ h.hom, by simp [dsimp% h.comm]⟩
 
+section Functor
+
+variable (V) [HasZeroObject V]
+
+def functor : V ⥤ RightFreyd V := rightFunctor V ⋙ quotient V
+
+instance : (functor V).Additive := by dsimp [functor]; infer_instance
+
+instance : (functor V).Full where
+  map_surjective a := by
+    obtain ⟨u, rfl⟩ := (quotient V).map_surjective a
+    use u.right
+    apply congrArg (quotient V).map
+    ext
+    · exact HasZeroObject.from_zero_ext _ _
+    · rfl
+
+instance : (functor V).Faithful where
+  map_injective {_ _} _ _ eq := by
+    refine eq_of_sub_eq_zero (((quotient_map_eq_iff _ _).mp eq).some.comm.trans ?_)
+    convert comp_zero
+    · exact HasZeroObject.from_zero_ext _ _
+    · rfl
+
+end Functor
+
 end RightFreyd
+
+section LeftFunctor
+
+variable [HasZeroObject V]
+
+/-- If `V` has a zero object, the functor from `V` to `Arrow V` that sends an object `X`
+to the arrow `X ⟶ 0`. -/
+def leftFunctor : V ⥤ Arrow V where
+  obj X := Arrow.mk ((isZero_zero V).from_ X)
+  map f := Arrow.homMk f 0 (HasZeroObject.to_zero_ext _ _)
+  map_id _ := by
+    ext
+    · rfl
+    · exact HasZeroObject.to_zero_ext _ _
+
+instance : (leftFunctor V).Additive where
+  map_add {_ _ _ _} := by
+    ext
+    · rfl
+    · exact HasZeroObject.to_zero_ext _ _
+
+end LeftFunctor
 
 /-- If `V` is a preadditive category, then `LeftFreyd V` is the category of arrows in `V`,
 with morphisms identified when they are left homotopic. -/
@@ -121,16 +187,7 @@ instance : (quotient V).EssSurj := Quotient.essSurj_functor _
 
 instance : (quotient V).Additive where
 
---instance : Functor.Additive (Quotient.functor (leftHomotopic V)) where
-
 variable {V}
-
-/-
--- Is this used?
-lemma quotient_obj_surjective (X : LeftFreyd V) :
-    ∃ (u : Arrow V), (quotient _).obj u = X :=
-  ⟨_, rfl⟩
--/
 
 /-- If two morphisms in `Arrow V` are left homotopic, then they become equal in the left
 Freyd category. -/
@@ -144,7 +201,12 @@ def homotopyOfEq {u v : Arrow V} (f g : u ⟶ v)
     (w : (quotient V).map f = (quotient V).map g) : LeftHomotopy f g :=
   ((Quotient.functor_map_eq_iff _ _ _).mp w).some
 
-variable {u v : Arrow V} (f : u ⟶ v)
+variable {u v : Arrow V} (f g : u ⟶ v)
+
+lemma quotient_map_eq_iff :
+    (quotient V).map f = (quotient V).map g ↔ Nonempty (LeftHomotopy f g) :=
+  ⟨fun h ↦ ⟨homotopyOfEq _ _ (by simpa using h)⟩,
+    fun ⟨h⟩ ↦ by simpa using eq_of_leftHomotopy _ _ h⟩
 
 lemma quotient_map_eq_zero_iff : (quotient V).map f = 0 ↔ Nonempty (LeftHomotopy f 0) :=
   ⟨fun h ↦ ⟨homotopyOfEq _ _ (by simpa using h)⟩,
@@ -160,6 +222,32 @@ lemma isMono_of_left_iso [IsIso f.left] : Mono ((quotient V).map f) where
     apply eq_of_leftHomotopy
     set h : LeftHomotopy (g₁ ≫ f) (g₂ ≫ f) := homotopyOfEq _ _ eq
     exact ⟨h.hom ≫ inv f.left, by simp [← cancel_mono f.left, dsimp% h.comm]⟩
+
+section Functor
+
+variable (V) [HasZeroObject V]
+
+def functor : V ⥤ LeftFreyd V := leftFunctor V ⋙ quotient V
+
+instance : (functor V).Additive := by dsimp [functor]; infer_instance
+
+instance : (functor V).Full where
+  map_surjective a := by
+    obtain ⟨u, rfl⟩ := (quotient V).map_surjective a
+    use u.left
+    apply congrArg (quotient V).map
+    ext
+    · rfl
+    · exact HasZeroObject.to_zero_ext _ _
+
+instance : (functor V).Faithful where
+  map_injective {_ _} _ _ eq := by
+    refine eq_of_sub_eq_zero (((quotient_map_eq_iff _ _).mp eq).some.comm.trans ?_)
+    convert zero_comp
+    · exact HasZeroObject.to_zero_ext _ _
+    · rfl
+
+end Functor
 
 end LeftFreyd
 

@@ -5,7 +5,7 @@ Authors: Sophie Morel
 -/
 module
 
-public import Mathlib.Algebra.Homology.FreydCategory.Quotient
+public import Mathlib.Algebra.Homology.FreydCategory.Basic
 
 /-!
 # Kernels in Freyd categories
