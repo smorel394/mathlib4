@@ -30,7 +30,7 @@ variable [HasZeroObject V]
 /-- If `V` has a zero object, the functor from `V` to `Arrow V` that sends an object `X`
 to the arrow `0 ⟶ X`. -/
 def rightFunctor : V ⥤ Arrow V where
-  obj X := Arrow.mk ((isZero_zero V).to_ X)
+  obj X := Arrow.mk 0
   map f := Arrow.homMk 0 f (HasZeroObject.from_zero_ext _ _)
   map_id _ := by
     ext
@@ -134,6 +134,59 @@ instance : (functor V).Faithful where
     · rfl
 
 end Functor
+
+section
+
+variable {C : Type*} [Category* C] [Preadditive C] [HasCokernels C] (F : V ⥤ C) [F.Additive]
+
+/-- If `C` is a preadditive category with cokernels, any additive functor `F : V ⥤ C`
+extends to a functor `lift F : Arrow V ⥤ C` by sending an arrow `u` of `V` to the cokernel
+of `F.map u`. -/
+@[simps]
+def liftAux :
+    Arrow V ⥤ C where
+      obj u := cokernel (F.map u.hom)
+      map f := cokernel.map _ _ (F.map f.left) (F.map f.right)
+        (by rw [← F.map_comp, ← f.w, F.map_comp])
+
+lemma liftAux_eq_of_rightHomotopy {u v : Arrow V} (f g : u ⟶ v) (h : RightHomotopy f g) :
+    (liftAux F).map f = (liftAux F).map g := by
+  simp only [liftAux_map]
+  refine (cancel_epi (cokernel.π (F.map u.hom))).mp ?_
+  rw [cokernel.π_desc, sub_eq_iff_eq_add.mp h.comm]
+  simp
+
+def lift : RightFreyd V ⥤ C :=
+  Quotient.lift _ (liftAux F) (fun _ _ f g ⟨h⟩ ↦ liftAux_eq_of_rightHomotopy F f g h)
+
+variable [HasZeroObject V]
+
+set_option backward.isDefEq.respectTransparency false in
+@[simps!]
+def rightFunctorLiftAuxIso : rightFunctor V ⋙ liftAux F ≅ F := by
+  refine NatIso.ofComponents (fun X ↦ ?_) (fun u ↦ ?_)
+  · have : IsIso (cokernel.π (F.map (((rightFunctor V).obj X).hom))) :=
+      coequalizer.π_of_eq (F.map_zero _ _)
+    exact (asIso (cokernel.π (F.map (((rightFunctor V).obj X).hom)))).symm
+  · simp [rightFunctor]
+
+def functorLiftIso : functor V ⋙ lift F ≅ F :=
+  Functor.associator _ _ _ ≪≫ (rightFunctor V).isoWhiskerLeft
+  (Quotient.lift.isLift (rightHomotopic V) (liftAux F)
+  (fun _ _ f g ⟨h⟩ ↦ liftAux_eq_of_rightHomotopy F f g h)) ≪≫ rightFunctorLiftAuxIso F
+
+@[simp]
+lemma functorLiftIso_inv_app (X : V) :
+    (functorLiftIso F).inv.app X = cokernel.π (F.map ((rightFunctor V).obj X).hom) := by
+  dsimp [functorLiftIso]
+  simp only [Iso.trans_inv, Functor.isoWhiskerLeft_inv, assoc, NatTrans.comp_app,
+    rightFunctorLiftAuxIso_inv_app, Functor.whiskerLeft_app, Quotient.lift.isLift_inv,
+    Functor.associator_inv_app]
+  erw [comp_id, comp_id]
+
+
+
+end
 
 end RightFreyd
 

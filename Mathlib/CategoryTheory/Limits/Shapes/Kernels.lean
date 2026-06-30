@@ -1122,7 +1122,7 @@ variable (X Y)
 
 /-- The cokernel of a zero morphism is an isomorphism -/
 theorem cokernel.π_of_zero : IsIso (cokernel.π (0 : X ⟶ Y)) :=
-  coequalizer.π_of_self _
+  inferInstance
 
 end
 

@@ -126,6 +126,14 @@ instance : HasCokernels (RightFreyd V) where
         cocone := candidateCokernelCofork f
         isColimit := candidateCokernelCoforkIsCokernel f}}
 
+section Functor
+
+local instance : HasZeroObject V := hasZeroObject_of_hasTerminal_object
+
+
+
+end Functor
+
 end RightFreyd
 
 end CategoryTheory.Preadditive
