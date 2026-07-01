@@ -6,6 +6,7 @@ Authors: Sophie Morel
 module
 
 public import Mathlib.Algebra.Homology.FreydCategory.ArrowHomotopy
+public import Mathlib.CategoryTheory.Preadditive.LeftExact
 
 /-!
 # Homotopies in the arrow category
@@ -143,37 +144,79 @@ variable {C : Type*} [Category* C] [Preadditive C] [HasCokernels C] (F : V ⥤ C
 extends to a functor `lift F : Arrow V ⥤ C` by sending an arrow `u` of `V` to the cokernel
 of `F.map u`. -/
 @[simps]
-def liftAux :
+def functorLiftAux :
     Arrow V ⥤ C where
       obj u := cokernel (F.map u.hom)
       map f := cokernel.map _ _ (F.map f.left) (F.map f.right)
         (by rw [← F.map_comp, ← f.w, F.map_comp])
 
-lemma liftAux_eq_of_rightHomotopy {u v : Arrow V} (f g : u ⟶ v) (h : RightHomotopy f g) :
-    (liftAux F).map f = (liftAux F).map g := by
-  simp only [liftAux_map]
+lemma functorLiftAux_eq_of_rightHomotopy {u v : Arrow V} (f g : u ⟶ v) (h : RightHomotopy f g) :
+    (functorLiftAux F).map f = (functorLiftAux F).map g := by
+  simp only [functorLiftAux_map]
   refine (cancel_epi (cokernel.π (F.map u.hom))).mp ?_
   rw [cokernel.π_desc, sub_eq_iff_eq_add.mp h.comm]
   simp
 
-def lift : RightFreyd V ⥤ C :=
-  Quotient.lift _ (liftAux F) (fun _ _ f g ⟨h⟩ ↦ liftAux_eq_of_rightHomotopy F f g h)
+def functorLift : RightFreyd V ⥤ C :=
+  Quotient.lift _ (functorLiftAux F) (fun _ _ f g ⟨h⟩ ↦ functorLiftAux_eq_of_rightHomotopy F f g h)
+
+variable {F} {F' : V ⥤ C} [F'.Additive]
+
+set_option backward.isDefEq.respectTransparency false in
+@[simps!]
+def natTransLiftAux (α : F ⟶ F') : functorLiftAux F ⟶ functorLiftAux F' where
+  app u := cokernel.map _ _ (α.app u.left) (α.app u.right) (α.naturality u.hom)
+  naturality _ _ _ := (cancel_epi (cokernel.π _)).mp (by simp)
+
+@[simps!]
+def natTransLift (α : F ⟶ F') : functorLift F ⟶ functorLift F' := Quotient.natTransLift _ (natTransLiftAux α)
+
+variable (F)
+lemma natTransLift_id : natTransLift (𝟙 F) = 𝟙 (functorLift F) := by cat_disch
+
+set_option backward.isDefEq.respectTransparency false in
+lemma natTransLift_comp {F'' : V ⥤ C} [F''.Additive] (α : F ⟶ F') (β : F' ⟶ F'') :
+    natTransLift α ≫ natTransLift β = natTransLift (α ≫ β) := by
+  ext
+  refine (cancel_epi (cokernel.π _)).mp (by simp)
+
+--lemma functorLiftIso_naturality : Functor.whiskerLeft
+
+variable [HasFiniteProducts V]
+
+instance : HasFiniteProducts (Arrow V) where
+  out _ := inferInstance
+
+instance : HasFiniteProducts (RightFreyd V) :=
+  have : (quotient V).EssSurj := inferInstance
+  (quotient V).hasFiniteProducts_of_additive_of_essSurj
+
+instance : PreservesFiniteColimits (functorLift F) := by
+  have : (functorLift F).PreservesZeroMorphisms := sorry
+  have : HasBinaryBiproducts (RightFreyd V) := sorry
+  have : HasFiniteCoproducts (RightFreyd V) := sorry
+  have : HasCoequalizers (RightFreyd V) := sorry
+  have : HasZeroObject (RightFreyd V) := sorry
+  have : HasZeroObject C := sorry
+  have : ∀ {X Y : RightFreyd V} (f : X ⟶ Y),
+    PreservesColimit (parallelPair f 0) (functorLift F) := sorry
+  exact (functorLift F).preservesFiniteColimits_of_preservesCokernels
 
 variable [HasZeroObject V]
 
 set_option backward.isDefEq.respectTransparency false in
 @[simps!]
-def rightFunctorLiftAuxIso : rightFunctor V ⋙ liftAux F ≅ F := by
+def rightFunctorLiftAuxIso : rightFunctor V ⋙ functorLiftAux F ≅ F := by
   refine NatIso.ofComponents (fun X ↦ ?_) (fun u ↦ ?_)
   · have : IsIso (cokernel.π (F.map (((rightFunctor V).obj X).hom))) :=
       coequalizer.π_of_eq (F.map_zero _ _)
     exact (asIso (cokernel.π (F.map (((rightFunctor V).obj X).hom)))).symm
   · simp [rightFunctor]
 
-def functorLiftIso : functor V ⋙ lift F ≅ F :=
+def functorLiftIso : functor V ⋙ functorLift F ≅ F :=
   Functor.associator _ _ _ ≪≫ (rightFunctor V).isoWhiskerLeft
-  (Quotient.lift.isLift (rightHomotopic V) (liftAux F)
-  (fun _ _ f g ⟨h⟩ ↦ liftAux_eq_of_rightHomotopy F f g h)) ≪≫ rightFunctorLiftAuxIso F
+  (Quotient.lift.isLift (rightHomotopic V) (functorLiftAux F)
+  (fun _ _ f g ⟨h⟩ ↦ functorLiftAux_eq_of_rightHomotopy F f g h)) ≪≫ rightFunctorLiftAuxIso F
 
 @[simp]
 lemma functorLiftIso_inv_app (X : V) :
@@ -184,19 +227,22 @@ lemma functorLiftIso_inv_app (X : V) :
     Functor.associator_inv_app]
   erw [comp_id, comp_id]
 
-variable {F} {F' : V ⥤ C} [F'.Additive]
+variable (V C)
 
-set_option backward.isDefEq.respectTransparency false in
-def natTransLiftAux (α : F ⟶ F') : liftAux F ⟶ liftAux F' where
-  app u := cokernel.map _ _ (α.app u.left) (α.app u.right) (α.naturality u.hom)
-  naturality _ _ _ := (cancel_epi (cokernel.π _)).mp (by simp)
+noncomputable def liftAux : (V ⥤+ C) ⥤ (RightFreyd V ⥤ C) where
+  obj F :=
+    letI := F.2
+    functorLift F.1
+  map {F G} α :=
+    letI := F.2
+    letI := G.2
+    natTransLift α.hom
+  map_comp _ _ := (natTransLift_comp _ _ _).symm
 
-def natTransLift (α : F ⟶ F') : lift F ⟶ lift F' := Quotient.natTransLift _ (natTransLiftAux α)
-
-
-
-
---lemma functorLiftIso_naturality : Functor.whiskerLeft
+noncomputable def lift : (V ⥤+ C) ⥤ (RightFreyd V ⥤ᵣ C) := by
+  refine ObjectProperty.lift _ (liftAux V C) ?_
+  intro F
+  sorry
 
 end
 

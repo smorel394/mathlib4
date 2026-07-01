@@ -272,12 +272,14 @@ end NormalEpi
 
 section Abelian
 
+/-
 instance : HasFiniteProducts (Arrow V) where
   out _ := inferInstance
 
 instance : HasFiniteProducts (RightFreyd V) :=
   have : (quotient V).EssSurj := inferInstance
   (quotient V).hasFiniteProducts_of_additive_of_essSurj
+-/
 
 variable [HasWeakKernels V]
 
