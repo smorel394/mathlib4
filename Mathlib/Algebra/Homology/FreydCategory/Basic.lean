@@ -184,7 +184,19 @@ lemma functorLiftIso_inv_app (X : V) :
     Functor.associator_inv_app]
   erw [comp_id, comp_id]
 
+variable {F} {F' : V ⥤ C} [F'.Additive]
 
+set_option backward.isDefEq.respectTransparency false in
+def natTransLiftAux (α : F ⟶ F') : liftAux F ⟶ liftAux F' where
+  app u := cokernel.map _ _ (α.app u.left) (α.app u.right) (α.naturality u.hom)
+  naturality _ _ _ := (cancel_epi (cokernel.π _)).mp (by simp)
+
+def natTransLift (α : F ⟶ F') : lift F ⟶ lift F' := Quotient.natTransLift _ (natTransLiftAux α)
+
+
+
+
+--lemma functorLiftIso_naturality : Functor.whiskerLeft
 
 end
 
