@@ -130,6 +130,64 @@ section Functor
 
 variable {C : Type*} [Category* C] [Preadditive C] [HasCokernels C] (F : V ⥤ C) [F.Additive]
 
+variable {u v : Arrow V} (f : u ⟶ v)
+
+set_option backward.isDefEq.respectTransparency false in
+def pi : cokernel (F.map v.hom) ⟶ cokernel (F.map ((CandidateCokernel.cokernel f).hom)) := by
+  refine cokernel.desc _ (cokernel.π (F.map ((CandidateCokernel.cokernel f).hom))) ?_
+  have := (CandidateCokernel.π f).w
+  dsimp [CandidateCokernel.π] at this
+  simp only [Arrow.homMk_left, Arrow.homMk_right, comp_id] at this
+  apply_fun F.map at this
+  rw [← this, F.map_comp, assoc, cokernel.condition, comp_zero]
+
+set_option backward.isDefEq.respectTransparency false in
+instance : Epi (pi F f) := by
+    refine epi_of_epi_fac (f := cokernel.π (F.map v.hom))
+      (h := cokernel.π (F.map (CandidateCokernel.cokernel f).hom)) ?_
+    simp [pi]
+
+set_option backward.isDefEq.respectTransparency false in
+def cc : CokernelCofork ((functorLift F).map ((quotient V).map f)) := by
+  refine CokernelCofork.ofπ (pi F f) ?_
+  rw [← cancel_epi (cokernel.π (F.map u.hom))]
+  simp [pi, functorLift_spec_map, CandidateCokernel.cokernel]
+  sorry
+
+set_option backward.isDefEq.respectTransparency false in
+def e₀ : (parallelPair ((quotient V).map f) 0 ⋙ functorLift F) ≅
+    parallelPair ((functorLift F).map ((quotient V).map f)) 0 :=
+  diagramIsoParallelPair (parallelPair ((quotient V).map f) 0 ⋙ functorLift F) ≪≫
+  parallelPair.ext (Iso.refl _) (Iso.refl _)
+
+set_option backward.isDefEq.respectTransparency false in
+def e : (functorLift F).mapCocone (candidateCokernelCofork f) ≅ (Cocone.precompose
+    (e₀ F f).hom).obj (cc F f) := by
+  refine Cocone.ext (Iso.refl _) (fun j ↦ ?_)
+  match j with
+  | WalkingParallelPair.zero => simp
+  | WalkingParallelPair.one =>
+    rw [← cancel_epi (cokernel.π _)]
+    simp only [parallelPair_obj_one, e₀, Functor.comp_map, parallelPair_obj_zero,
+      parallelPair_map_left, parallelPair_map_right, CandidateCokernel.cokernel,
+      candidateCokernelCofork, CandidateCokernel.π, Functor.mapCocone_ι_app, Cofork.ofπ_ι_app,
+      functorLift_spec_map, functorLiftAux_map, homMk_left, homMk_right, Functor.map_id,
+      Iso.refl_hom, comp_id, Cocone.precompose_obj_ι, Iso.trans_hom, assoc, NatTrans.comp_app,
+      diagramIsoParallelPair_hom_app, eqToHom_refl, parallelPair.ext_hom_app, id_comp]
+    refine (cokernel.π_desc _ _ _).trans ?_
+    rw [id_comp]
+    exact (cokernel.π_desc _ _ _).symm
+
+def colim : IsColimit (cc F f) := by
+  refine Cofork.IsColimit.mk' _ (fun s ↦ ⟨?_, ?_, ?_⟩)
+  · simp [cc]
+    sorry
+  · sorry
+  · sorry
+
+def iscolim : IsColimit ((functorLift F).mapCocone (candidateCokernelCofork f)) :=
+  ((IsColimit.precomposeHomEquiv (e₀ F f) _).invFun (colim F f)).ofIsoColimit (e F f).symm
+
 set_option backward.isDefEq.respectTransparency false in
 def preservesCokernel_functorLift_aux {u v : Arrow V} (f : u ⟶ v) :
     IsColimit ((functorLift F).mapCocone (candidateCokernelCofork f)) := by
