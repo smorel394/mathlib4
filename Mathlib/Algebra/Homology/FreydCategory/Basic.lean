@@ -169,6 +169,11 @@ def functorLift : RightFreyd V ⥤ C :=
 lemma functorLift_spec : quotient V ⋙ functorLift F = functorLiftAux F :=
   Quotient.lift_spec _ _ _
 
+lemma functorLift_spec_obj (u : Arrow V) :
+    (functorLift F).obj ((quotient V).obj u) = (functorLiftAux F).obj u := by
+  rw [← Functor.comp_obj]
+  rfl
+
 lemma functorLift_spec_map {u v : Arrow V} (f : u ⟶ v) :
     (functorLift F).map ((quotient V).map f) = (functorLiftAux F).map f := by
   rw [← Functor.comp_map]

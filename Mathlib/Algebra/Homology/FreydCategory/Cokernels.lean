@@ -136,9 +136,42 @@ def preservesCokernel_functorLift_aux {u v : Arrow V} (f : u ⟶ v) :
   set c := ((functorLift F).mapCocone (candidateCokernelCofork f))
   set p : (functorLift F).obj ((quotient V).obj v) ⟶ c.pt := c.ι.app WalkingParallelPair.one
   have : Epi p := by
-    set t := CandidateCokernel.cokernel f
-    refine epi_of_epi_fac (f := cokernel.π (F.map v.hom)) (h := cokernel.π (F.map t.hom)) ?_
-    simp [p, c]
+    refine epi_of_epi_fac (f := cokernel.π (F.map v.hom))
+      (h := cokernel.π (F.map (CandidateCokernel.cokernel f).hom)) ?_
+    simp [p, c, candidateCokernelCofork, functorLift_spec_map, CandidateCokernel.π]
+  set e := diagramIsoParallelPair (parallelPair ((quotient V).map f) 0 ⋙ functorLift F)
+  apply (IsColimit.precomposeHomEquiv e.symm c).toFun
+  refine Cofork.IsColimit.mk' _ (fun s ↦ ⟨?_, ?_, ?_⟩)
+  · dsimp [e, c, candidateCokernelCofork]
+    simp only [Cocone.precompose_obj_pt, Functor.mapCocone_pt, Cofork.ofπ_pt, functorLift_spec_obj,
+      functorLiftAux_obj, mk_hom]
+    refine cokernel.desc _ (cokernel.π _ ≫ Cofork.π s) ?_
+    dsimp
+    have : PreservesBinaryBiproducts F := sorry
+    rw [← cancel_epi (F.mapBiprod _ _).inv]
+    ext
+    · simp only [biprod.uniqueUpToIso_inv, Functor.mapBinaryBicone_inl, BinaryBiproduct.bicone_inl,
+      Functor.mapBinaryBicone_inr, BinaryBiproduct.bicone_inr, biprod.inl_desc_assoc,
+      ← F.map_comp_assoc, biprod.inl_desc, comp_zero]
+      exact (cokernel.condition_assoc (F.map v.hom) _).trans zero_comp
+    · simp only [biprod.uniqueUpToIso_inv, Functor.mapBinaryBicone_inl, BinaryBiproduct.bicone_inl,
+      Functor.mapBinaryBicone_inr, BinaryBiproduct.bicone_inr, biprod.inr_desc_assoc,
+      ← F.map_comp_assoc, biprod.inr_desc, comp_zero]
+      rw [← assoc]
+      change (_ ≫ cokernel.π (F.map v.hom)) ≫ _ = _
+      rw [← cokernel.π_desc (F.map u.hom) (F.map (Hom.right f) ≫ cokernel.π (F.map v.hom)) sorry]
+      rw [assoc]
+      convert comp_zero
+      have := Cofork.condition s
+      dsimp at this
+      simp only [functorLift_spec_map, functorLiftAux_map, Functor.map_zero, zero_comp] at this
+      exact this
+  · simp
+    rw [← cancel_epi (cokernel.π (F.map v.hom))]
+    simp [e, c, candidateCokernelCofork]
+  · sorry
+
+
 
 def preservesCokernel_functorLift {u v : RightFreyd V} (f : u ⟶ v) {c : CokernelCofork f}
     (hc : IsColimit c) : IsColimit ((functorLift F).mapCocone c) := sorry
