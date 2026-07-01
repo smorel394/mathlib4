@@ -128,9 +128,32 @@ instance : HasCokernels (RightFreyd V) where
 
 section Functor
 
+variable {C : Type*} [Category* C] [Preadditive C] [HasCokernels C] (F : V ⥤ C) [F.Additive]
+
+set_option backward.isDefEq.respectTransparency false in
+def preservesCokernel_functorLift_aux {u v : Arrow V} (f : u ⟶ v) :
+    IsColimit ((functorLift F).mapCocone (candidateCokernelCofork f)) := by
+  set c := ((functorLift F).mapCocone (candidateCokernelCofork f))
+  set p : (functorLift F).obj ((quotient V).obj v) ⟶ c.pt := c.ι.app WalkingParallelPair.one
+  have : Epi p := by
+    set t := CandidateCokernel.cokernel f
+    refine epi_of_epi_fac (f := cokernel.π (F.map v.hom)) (h := cokernel.π (F.map t.hom)) ?_
+    simp [p, c]
+
+def preservesCokernel_functorLift {u v : RightFreyd V} (f : u ⟶ v) {c : CokernelCofork f}
+    (hc : IsColimit c) : IsColimit ((functorLift F).mapCocone c) := sorry
+
 local instance : HasZeroObject V := hasZeroObject_of_hasTerminal_object
 
-
+instance : PreservesFiniteColimits (functorLift F) := by
+  have : HasBinaryBiproducts (RightFreyd V) := HasBinaryBiproducts.of_hasBinaryProducts
+  have : HasFiniteBiproducts (RightFreyd V) := HasFiniteBiproducts.of_hasFiniteProducts
+  have : HasCoequalizers (RightFreyd V) := Preadditive.hasCoequalizers_of_hasCokernels
+  have : HasZeroObject C := F.hasZeroObject_of_additive
+  have : ∀ {X Y : RightFreyd V} (f : X ⟶ Y),
+      PreservesColimit (parallelPair f 0) (functorLift F) :=
+    fun f ↦ {preserves hc := Nonempty.intro (preservesCokernel_functorLift F f hc)}
+  exact (functorLift F).preservesFiniteColimits_of_preservesCokernels
 
 end Functor
 

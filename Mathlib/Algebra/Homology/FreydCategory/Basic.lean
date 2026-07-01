@@ -150,15 +150,37 @@ def functorLiftAux :
       map f := cokernel.map _ _ (F.map f.left) (F.map f.right)
         (by rw [← F.map_comp, ← f.w, F.map_comp])
 
-lemma functorLiftAux_eq_of_rightHomotopy {u v : Arrow V} (f g : u ⟶ v) (h : RightHomotopy f g) :
+set_option backward.isDefEq.respectTransparency false in
+instance : (functorLiftAux F).Additive where
+  map_add {_ _} {_ _}:= by
+    rw [← cancel_epi (cokernel.π _)]
+    simp
+
+lemma functorLiftAux_eq_of_rightHomotopic {u v : Arrow V} (f g : u ⟶ v) (h : rightHomotopic V f g) :
     (functorLiftAux F).map f = (functorLiftAux F).map g := by
   simp only [functorLiftAux_map]
   refine (cancel_epi (cokernel.π (F.map u.hom))).mp ?_
-  rw [cokernel.π_desc, sub_eq_iff_eq_add.mp h.comm]
+  rw [cokernel.π_desc, sub_eq_iff_eq_add.mp h.some.comm]
   simp
 
 def functorLift : RightFreyd V ⥤ C :=
-  Quotient.lift _ (functorLiftAux F) (fun _ _ f g ⟨h⟩ ↦ functorLiftAux_eq_of_rightHomotopy F f g h)
+  Quotient.lift _ (functorLiftAux F) (fun _ _ ↦ functorLiftAux_eq_of_rightHomotopic F)
+
+lemma functorLift_spec : quotient V ⋙ functorLift F = functorLiftAux F :=
+  Quotient.lift_spec _ _ _
+
+lemma functorLift_spec_map {u v : Arrow V} (f : u ⟶ v) :
+    (functorLift F).map ((quotient V).map f) = (functorLiftAux F).map f := by
+  rw [← Functor.comp_map]
+  rfl
+
+set_option backward.isDefEq.respectTransparency false in
+instance : (functorLift F).Additive where
+  map_add {_ _} {f g} := by
+    obtain ⟨a, rfl⟩ := (quotient V).map_surjective f
+    obtain ⟨b, rfl⟩ := (quotient V).map_surjective g
+    rw [← (quotient V).map_add]
+    simp only [functorLift_spec_map, (functorLiftAux F).map_add]
 
 variable {F} {F' : V ⥤ C} [F'.Additive]
 
@@ -169,7 +191,8 @@ def natTransLiftAux (α : F ⟶ F') : functorLiftAux F ⟶ functorLiftAux F' whe
   naturality _ _ _ := (cancel_epi (cokernel.π _)).mp (by simp)
 
 @[simps!]
-def natTransLift (α : F ⟶ F') : functorLift F ⟶ functorLift F' := Quotient.natTransLift _ (natTransLiftAux α)
+def natTransLift (α : F ⟶ F') : functorLift F ⟶ functorLift F' :=
+  Quotient.natTransLift _ (natTransLiftAux α)
 
 variable (F)
 lemma natTransLift_id : natTransLift (𝟙 F) = 𝟙 (functorLift F) := by cat_disch
@@ -191,17 +214,6 @@ instance : HasFiniteProducts (RightFreyd V) :=
   have : (quotient V).EssSurj := inferInstance
   (quotient V).hasFiniteProducts_of_additive_of_essSurj
 
-instance : PreservesFiniteColimits (functorLift F) := by
-  have : (functorLift F).PreservesZeroMorphisms := sorry
-  have : HasBinaryBiproducts (RightFreyd V) := sorry
-  have : HasFiniteCoproducts (RightFreyd V) := sorry
-  have : HasCoequalizers (RightFreyd V) := sorry
-  have : HasZeroObject (RightFreyd V) := sorry
-  have : HasZeroObject C := sorry
-  have : ∀ {X Y : RightFreyd V} (f : X ⟶ Y),
-    PreservesColimit (parallelPair f 0) (functorLift F) := sorry
-  exact (functorLift F).preservesFiniteColimits_of_preservesCokernels
-
 variable [HasZeroObject V]
 
 set_option backward.isDefEq.respectTransparency false in
@@ -216,8 +228,9 @@ def rightFunctorLiftAuxIso : rightFunctor V ⋙ functorLiftAux F ≅ F := by
 def functorLiftIso : functor V ⋙ functorLift F ≅ F :=
   Functor.associator _ _ _ ≪≫ (rightFunctor V).isoWhiskerLeft
   (Quotient.lift.isLift (rightHomotopic V) (functorLiftAux F)
-  (fun _ _ f g ⟨h⟩ ↦ functorLiftAux_eq_of_rightHomotopy F f g h)) ≪≫ rightFunctorLiftAuxIso F
+  (fun _ _ f g h ↦ functorLiftAux_eq_of_rightHomotopic F f g h)) ≪≫ rightFunctorLiftAuxIso F
 
+omit [HasFiniteProducts V] in
 @[simp]
 lemma functorLiftIso_inv_app (X : V) :
     (functorLiftIso F).inv.app X = cokernel.π (F.map ((rightFunctor V).obj X).hom) := by
