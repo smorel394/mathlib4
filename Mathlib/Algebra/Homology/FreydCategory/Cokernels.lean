@@ -178,10 +178,28 @@ def e : (functorLift F).mapCocone (candidateCokernelCofork f) ≅ (Cocone.precom
     rw [id_comp]
     exact (cokernel.π_desc _ _ _).symm
 
+set_option backward.isDefEq.respectTransparency false in
 def colim : IsColimit (cc F f) := by
   refine Cofork.IsColimit.mk' _ (fun s ↦ ⟨?_, ?_, ?_⟩)
-  · simp [cc]
-    sorry
+  · refine cokernel.desc _ (cokernel.π _ ≫ Cofork.π s) ?_
+    have : PreservesBinaryBiproducts F := sorry
+    rw [← cancel_epi (F.mapBiprod v.left u.right).inv]
+    simp only [biprod.uniqueUpToIso_inv, Functor.mapBinaryBicone_inl, BinaryBiproduct.bicone_inl,
+      Functor.mapBinaryBicone_inr, BinaryBiproduct.bicone_inr, CandidateCokernel.cokernel, mk_hom,
+      comp_zero]
+    ext
+    · simp only [biprod.inl_desc_assoc, comp_zero]
+      rw [← F.map_comp_assoc, biprod.inl_desc]
+      exact (cokernel.condition_assoc (F.map v.hom) _).trans zero_comp
+    · simp only [biprod.inr_desc_assoc, comp_zero]
+      rw [← F.map_comp_assoc, biprod.inr_desc, ← assoc]
+      change (_ ≫ cokernel.π (F.map v.hom)) ≫ _ = _
+      rw [← cokernel.π_desc (F.map u.hom) (F.map (Hom.right f) ≫ cokernel.π (F.map v.hom)) sorry]
+      rw [assoc]
+      convert comp_zero
+      have := Cofork.condition s
+      simp only [functorLift_spec_map, functorLiftAux_map, zero_comp] at this
+      exact this
   · sorry
   · sorry
 
