@@ -271,9 +271,13 @@ end RightExact
 
 section UniversalProperty
 
-variable (V C) [HasFiniteProducts V]
+variable (V C) [HasFiniteProducts V] [HasZeroObject C]
 
-noncomputable def liftAux : (V ⥤+ C) ⥤ (RightFreyd V ⥤ C) where
+local instance : HasZeroObject V := hasZeroObject_of_hasTerminal_object
+
+local instance : HasBinaryBiproducts (RightFreyd V) := HasBinaryBiproducts.of_hasBinaryProducts
+
+def liftAux : (V ⥤+ C) ⥤ (RightFreyd V ⥤ C) where
   obj F :=
     letI := F.2
     functorLift F.1
@@ -283,9 +287,36 @@ noncomputable def liftAux : (V ⥤+ C) ⥤ (RightFreyd V ⥤ C) where
     natTransLift α.hom
   map_comp _ _ := natTransLift_comp _ _
 
-noncomputable def lift : (V ⥤+ C) ⥤ (RightFreyd V ⥤ᵣ C) :=
+def lift : (V ⥤+ C) ⥤ (RightFreyd V ⥤ᵣ C) :=
   ObjectProperty.lift _ (liftAux V C)
   (fun F ↦ inferInstanceAs (PreservesFiniteColimits (functorLift F.1)))
+
+def shrink : (RightFreyd V ⥤ᵣ C) ⥤ (V ⥤+ C) := by
+  refine ObjectProperty.lift _ ?_ ?_
+  · exact AdditiveFunctor.ofRightExact _ _ ⋙ ObjectProperty.ι (additiveFunctor _ _) ⋙
+      (Functor.whiskeringLeft _ _ _).obj (functor V)
+  · intro F
+    have : F.1.Additive := rightExactFunctor_le_additiveFunctor _ _  _ F.2
+    exact inferInstanceAs ((functor V ⋙ F.1).Additive)
+
+set_option backward.isDefEq.respectTransparency false in
+def lift_shrink : lift V C ⋙ shrink V C ≅ 𝟭 (V ⥤+ C) := by
+  refine NatIso.ofComponents (fun F ↦ ?_) ?_
+  · exact ObjectProperty.isoMk _ (functorLiftIso F.1)
+  · intro F G α
+    ext X
+    dsimp [shrink, lift, liftAux, functorLiftIso]
+    simp only [ObjectProperty.lift_map, Functor.comp_map, ObjectProperty.ιOfLE_map,
+      ObjectProperty.homMk_hom, ObjectProperty.ι_obj, AdditiveFunctor.ofRightExact_obj_fst,
+      ObjectProperty.ι_map, Functor.whiskeringLeft_obj_map, Functor.whiskerLeft_app,
+      natTransLift_app, ObjectProperty.isoMk_hom, Iso.trans_hom, Functor.isoWhiskerLeft_hom,
+      NatTrans.comp_app, Functor.associator_hom_app, Quotient.lift.isLift_hom,
+      rightFunctorLiftAuxIso_hom_app, assoc]
+    erw [id_comp, id_comp, id_comp, id_comp]
+    rw [← cancel_epi ((cokernel.π (F.obj.map ((rightFunctor V).obj X).hom))),
+      IsIso.hom_inv_id_assoc]
+    erw [cokernel.π_desc_assoc, assoc, IsIso.hom_inv_id]
+    exact comp_id _
 
 end UniversalProperty
 
