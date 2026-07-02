@@ -131,6 +131,25 @@ lemma functorLiftIso_inv_app (X : V) :
     Functor.associator_inv_app, comp_id]
   exact comp_id _
 
+def functorLiftAuxUnique (G : Arrow V ⥤ C) [G.Additive] :
+    functorLiftAux (rightFunctor V ⋙ G) ≅ G := by
+  refine NatIso.ofComponents (fun u ↦ ?_) ?_
+  · simp [rightFunctor, functorLiftAux]
+    sorry
+  · sorry
+
+def functorLiftUnique (G : RightFreyd V ⥤ C) [G.Additive] : functorLift (functor V ⋙ G) ≅ G := by
+  refine NatIso.ofComponents (fun X ↦ ?_) ?_
+  · sorry
+  · sorry
+
+/-
+lemma functorLiftUnique_naturality (G G' : RightFreyd V ⥤ C) [G.Additive] [G'.Additive]
+    (α : G ⟶ G') :
+    ((lift V C).map ((shrink V C).map α)).hom.app x✝ ≫ (functorLiftUnique Y✝.obj).hom.app x✝ =
+  (functorLiftUnique X✝.obj).hom.app x✝ ≫ α.hom.app x✝
+-/
+
 end Lift
 
 section PreservesCokernels
@@ -317,6 +336,17 @@ def lift_shrink : lift V C ⋙ shrink V C ≅ 𝟭 (V ⥤+ C) := by
       IsIso.hom_inv_id_assoc]
     erw [cokernel.π_desc_assoc, assoc, IsIso.hom_inv_id]
     exact comp_id _
+
+def shrink_lift : shrink V C ⋙ lift V C ≅ 𝟭 (RightFreyd V ⥤ᵣ C) := by
+  refine NatIso.ofComponents (fun F ↦ ?_) (fun α ↦ ?_)
+  · have : F.1.Additive := rightExactFunctor_le_additiveFunctor _ _  _ F.2
+    exact ObjectProperty.isoMk _ (functorLiftUnique F.1)
+  · refine (ObjectProperty.ι _).map_injective ?_
+    dsimp
+    ext
+    dsimp
+    simp
+    sorry
 
 end UniversalProperty
 

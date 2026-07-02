@@ -231,6 +231,15 @@ instance : HasCokernels (RightFreyd V) where
       obtain ⟨f, rfl⟩ := (quotient V).map_surjective f
       exact Nonempty.intro ⟨CandidateCokernelCofork f, candidateCokernelCoforkIsCokernel f⟩ }
 
+variable [HasZeroObject V]
+
+open ZeroObject
+
+set_option backward.isDefEq.respectTransparency false in
+def coforkRightFunctor (u : Arrow V) : CokernelCofork ((rightFunctor V).map u.hom) := by
+  refine CokernelCofork.ofπ (Arrow.homMk (0 : 0 ⟶ u.left) (𝟙 u.right) (by simp [rightFunctor])) ?_
+  simp [rightFunctor]
+
 end RightFreyd
 
 end CategoryTheory.Preadditive
