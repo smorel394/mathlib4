@@ -236,9 +236,26 @@ variable [HasZeroObject V]
 open ZeroObject
 
 set_option backward.isDefEq.respectTransparency false in
-def coforkRightFunctor (u : Arrow V) : CokernelCofork ((rightFunctor V).map u.hom) := by
-  refine CokernelCofork.ofπ (Arrow.homMk (0 : 0 ⟶ u.left) (𝟙 u.right) (by simp [rightFunctor])) ?_
-  simp [rightFunctor]
+def coforkRightFunctor (u : Arrow V) : CokernelCofork ((functor V).map u.hom) := by
+  refine CokernelCofork.ofπ ((quotient V).map (Arrow.homMk (0 : 0 ⟶ u.left) (𝟙 u.right)
+    (by simp [rightFunctor]))) ?_
+  dsimp [functor]
+  rw [← (quotient V).map_comp, quotient_map_eq_zero_iff]
+  refine Nonempty.intro ⟨𝟙 _, ?_⟩
+  dsimp [rightFunctor]
+  simp only [homMk_right, sub_zero, id_comp]
+  exact comp_id _
+
+set_option backward.isDefEq.respectTransparency false in
+def coforkRightFunctorIsColimit (u : Arrow V) : IsColimit (coforkRightFunctor u) := by
+  have : Epi ((quotient V).map (Arrow.homMk (f := Arrow.mk 0) (g := Arrow.mk u.hom)
+      (0 : 0 ⟶ u.left) (𝟙 u.right) (by simp))) := by
+    apply +allowSynthFailures isEpi_of_right_iso
+    exact inferInstanceAs (IsIso (𝟙 _))
+  refine CokernelCofork.IsColimit.ofπ' _ ?_ ?_
+  sorry
+  sorry
+
 
 end RightFreyd
 
