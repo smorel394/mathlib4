@@ -257,15 +257,18 @@ def coforkRightFunctorIsColimit (u : Arrow V) : IsColimit (coforkRightFunctor u)
       (0 : 0 ⟶ u.left) (𝟙 u.right) (by simp))) := by
     apply +allowSynthFailures isEpi_of_right_iso
     exact inferInstanceAs (IsIso (𝟙 _))
-  refine CokernelCofork.IsColimit.ofπ' _ zero (fun f eq ↦ ⟨?_, ?_⟩)
+  refine CokernelCofork.IsColimit.ofπ' _ zero (fun f eq ↦ ?_)
   set t := (quotient V).map_surjective f
   dsimp [functor] at eq
   rw [← t.choose_spec, ← (quotient V).map_comp, quotient_map_eq_zero_iff] at eq
-  set h := eq.some
-
-
-
-
+  refine ⟨(quotient V).map (Arrow.homMk eq.some.hom t.choose.right
+    (by simp [← eq.some.comm, rightFunctor])), ?_⟩
+  conv_rhs => rw [← t.choose_spec]
+  rw [← (quotient V).map_comp, quotient_map_eq_iff]
+  refine Nonempty.intro ⟨0, ?_⟩
+  simp only [comp_right, homMk_right, zero_comp]
+  convert sub_self t.choose.right
+  exact id_comp _
 
 end RightFreyd
 
