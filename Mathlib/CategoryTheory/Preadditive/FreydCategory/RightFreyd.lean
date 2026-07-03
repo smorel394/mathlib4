@@ -66,6 +66,10 @@ instance : (quotient V).Additive where
 
 variable {V}
 
+lemma quotient_obj_surjective (a : RightFreyd V) :
+    ∃ (u : Arrow V), (quotient V).obj u = a :=
+  ⟨_, rfl⟩
+
 /-- If two morphisms in `Arrow V` are right homotopic, then they become equal in the right
 Freyd category. -/
 theorem eq_of_rightHomotopy {u v : Arrow V} (f g : u ⟶ v) (h : RightHomotopy f g) :

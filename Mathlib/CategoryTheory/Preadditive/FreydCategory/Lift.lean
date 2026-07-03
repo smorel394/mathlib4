@@ -131,17 +131,26 @@ lemma functorLiftIso_inv_app (X : V) :
     Functor.associator_inv_app, comp_id]
   exact comp_id _
 
-def functorLiftAuxUnique (G : Arrow V ⥤ C) [G.Additive] :
+def functorLiftAuxUnique (G : Arrow V ⥤ C) [G.Additive] [PreservesFiniteColimits G] :
     functorLiftAux (rightFunctor V ⋙ G) ≅ G := by
   refine NatIso.ofComponents (fun u ↦ ?_) ?_
   · simp [rightFunctor, functorLiftAux]
     sorry
   · sorry
 
-def functorLiftUnique (G : RightFreyd V ⥤ C) [G.Additive] : functorLift (functor V ⋙ G) ≅ G := by
-  refine NatIso.ofComponents (fun X ↦ ?_) ?_
-  · sorry
-  · sorry
+variable [HasBinaryBiproducts V]
+
+def functorLiftUnique (G : RightFreyd V ⥤ C) [G.Additive] [PreservesFiniteColimits G] :
+    functorLift (functor V ⋙ G) ≅ G := by
+  refine NatIso.ofComponents (fun a ↦ ?_) (fun {a b} f ↦ ?_)
+  · set e := quotient_obj_surjective a
+    rw [← e.choose_spec]
+    refine (PreservesCokernel.iso G ((functor V).map e.choose.hom)).symm ≪≫ G.mapIso ?_
+    exact (cokernelIsCokernel _).coconePointUniqueUpToIso (coforkRightFunctorIsColimit e.choose)
+  · set e := quotient_obj_surjective a
+    set f := quotient_obj_surjective b
+    simp
+
 
 /-
 lemma functorLiftUnique_naturality (G G' : RightFreyd V ⥤ C) [G.Additive] [G'.Additive]
