@@ -37,6 +37,17 @@ def mapRightFreyd : RightFreyd V₁ ⥤ RightFreyd V₂ :=
   (fun _ _ _ _ ⟨h⟩ ↦ (eq_of_rightHomotopy _ _ ⟨G.map h.hom, by simp [← G.map_sub, h.comm]; rfl⟩))
 
 set_option backward.isDefEq.respectTransparency false in
+instance : G.mapRightFreyd.Additive where
+  map_add {_ _} f g := by
+    obtain ⟨f, rfl⟩ := (quotient V₁).map_surjective f
+    obtain ⟨g, rfl⟩ := (quotient V₁).map_surjective g
+    change (quotient V₂).map _ = (quotient V₂).map _ + (quotient V₂).map _
+    rw [← (quotient V₂).map_add]
+    congr 1
+    simp
+    rfl
+
+set_option backward.isDefEq.respectTransparency false in
 @[simps!]
 def mapRightFreyd_id : (𝟭 V₁).mapRightFreyd ≅ 𝟭 (RightFreyd V₁) :=
   Quotient.natIsoLift _ (NatIso.ofComponents (fun _ ↦ Iso.refl _) (fun _ ↦ by simp; rfl))

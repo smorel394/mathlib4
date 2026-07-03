@@ -6,6 +6,7 @@ Authors: Sophie Morel
 module
 
 public import Mathlib.CategoryTheory.Preadditive.FreydCategory.RightFreyd
+public import Mathlib.CategoryTheory.Preadditive.FreydCategory.Functoriality
 public import Mathlib.CategoryTheory.Limits.Comma
 public import Mathlib.CategoryTheory.Preadditive.LeftExact
 public import Mathlib.Tactic.ApplyFun
@@ -31,6 +32,24 @@ namespace RightFreyd
 
 section Lift
 
+/-- If `C` is a preadditive category with cokernels, any additive functor `F : V ⥤ C`
+extends to an additive functor `functorLift F : RightFreyd V ⥤ C` by sending an object of
+`RightFreyd V` represented by `u : Arrow V` to the cokernel of `F.map u`. -/
+@[simps!]
+def functorLift : RightFreyd V ⥤ C := F.mapRightFreyd ⋙ projection C
+
+instance : (RightFreyd.functorLift F).Additive := by
+  dsimp [functorLift]
+  infer_instance
+
+def functorLiftIsLift [HasZeroObject V] [HasZeroObject C] : functor V ⋙ functorLift F ≅ F :=
+  (Functor.associator _ _ _).symm ≪≫ Functor.isoWhiskerRight F.functorMapRightFreydIso
+  (projection C) ≪≫ Functor.associator _ _ _ ≪≫ F.isoWhiskerLeft (functorProjectionIso C)
+  ≪≫ F.rightUnitor
+
+
+
+#exit
 /-- If `C` is a preadditive category with cokernels, any additive functor `F : V ⥤ C`
 extends to an additive functor `functorLiftAux F : Arrow V ⥤ C` by sending an arrow `u`
 of `V` to the cokernel of `F.map u`. -/

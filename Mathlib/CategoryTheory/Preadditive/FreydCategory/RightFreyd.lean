@@ -182,6 +182,11 @@ def projectionAux : Arrow V ⥤ V where
   map f := cokernel.map _ _ f.left f.right f.w.symm
 
 set_option backward.isDefEq.respectTransparency false in
+instance : (projectionAux V).Additive where
+  map_add {_ _} _ _ := by
+    simp [← cancel_epi (cokernel.π _)]
+
+set_option backward.isDefEq.respectTransparency false in
 /-- If `V` has cokernels, this is the functor `RightFreyd V ⥤ V` sending an arrow of `V` to
 its cokernel. -/
 @[simps!]
@@ -189,6 +194,16 @@ def projection : RightFreyd V ⥤ V := by
   refine Quotient.lift _ (projectionAux V) (fun u v f g ⟨h⟩ ↦ ?_)
   rw [← cancel_epi (cokernel.π u.hom)]
   simp [sub_eq_iff_eq_add.mp h.comm]
+
+set_option backward.isDefEq.respectTransparency false in
+instance : (projection V).Additive where
+  map_add {_ _} f g := by
+    obtain ⟨a, rfl⟩ := (quotient V).map_surjective f
+    obtain ⟨b, rfl⟩ := (quotient V).map_surjective g
+    rw [← (quotient V).map_add]
+    change (projectionAux V).map _ = _
+    rw [Functor.map_add]
+    rfl
 
 set_option backward.isDefEq.respectTransparency false in
 def functorProjectionIso : functor V ⋙ projection V ≅ 𝟭 V := by
