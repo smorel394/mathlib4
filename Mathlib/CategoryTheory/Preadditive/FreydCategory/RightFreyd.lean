@@ -235,10 +235,10 @@ variable [HasZeroObject V]
 
 open ZeroObject
 
+omit [HasBinaryBiproducts V] in
 set_option backward.isDefEq.respectTransparency false in
-def coforkRightFunctor (u : Arrow V) : CokernelCofork ((functor V).map u.hom) := by
-  refine CokernelCofork.ofπ ((quotient V).map (Arrow.homMk (0 : 0 ⟶ u.left) (𝟙 u.right)
-    (by simp [rightFunctor]))) ?_
+lemma zero : (functor V).map u.hom ≫ (quotient V).map (Arrow.homMk (f := Arrow.mk 0)
+    (g := Arrow.mk u.hom) (0 : 0 ⟶ u.left) (𝟙 u.right) (by simp)) = 0 := by
   dsimp [functor]
   rw [← (quotient V).map_comp, quotient_map_eq_zero_iff]
   refine Nonempty.intro ⟨𝟙 _, ?_⟩
@@ -247,14 +247,24 @@ def coforkRightFunctor (u : Arrow V) : CokernelCofork ((functor V).map u.hom) :=
   exact comp_id _
 
 set_option backward.isDefEq.respectTransparency false in
+def coforkRightFunctor (u : Arrow V) : CokernelCofork ((functor V).map u.hom) := by
+  refine CokernelCofork.ofπ ((quotient V).map (Arrow.homMk (0 : 0 ⟶ u.left) (𝟙 u.right)
+    (by simp [rightFunctor]))) zero
+
+set_option backward.isDefEq.respectTransparency false in
 def coforkRightFunctorIsColimit (u : Arrow V) : IsColimit (coforkRightFunctor u) := by
   have : Epi ((quotient V).map (Arrow.homMk (f := Arrow.mk 0) (g := Arrow.mk u.hom)
       (0 : 0 ⟶ u.left) (𝟙 u.right) (by simp))) := by
     apply +allowSynthFailures isEpi_of_right_iso
     exact inferInstanceAs (IsIso (𝟙 _))
-  refine CokernelCofork.IsColimit.ofπ' _ ?_ ?_
-  sorry
-  sorry
+  refine CokernelCofork.IsColimit.ofπ' _ zero (fun f eq ↦ ⟨?_, ?_⟩)
+  set t := (quotient V).map_surjective f
+  dsimp [functor] at eq
+  rw [← t.choose_spec, ← (quotient V).map_comp, quotient_map_eq_zero_iff] at eq
+  set h := eq.some
+
+
+
 
 
 end RightFreyd
