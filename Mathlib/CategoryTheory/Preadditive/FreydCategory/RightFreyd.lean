@@ -112,10 +112,12 @@ variable [HasZeroObject V]
 
 variable (V)
 
+open ZeroObject in
 /-- If `V` has a zero object, the functor from `V` to `Arrow V` that sends an object `X`
 to the arrow `0 ⟶ X`. -/
+@[simps]
 def rightFunctor : V ⥤ Arrow V where
-  obj X := Arrow.mk 0
+  obj X := Arrow.mk (0 : 0 ⟶ X)
   map f := Arrow.homMk 0 f (HasZeroObject.from_zero_ext _ _)
   map_id _ := by
     ext
@@ -127,6 +129,22 @@ instance : (rightFunctor V).Additive where
     ext
     · exact HasZeroObject.from_zero_ext _ _
     · rfl
+
+variable {V} {V' : Type*} [Category* V'] [Preadditive V'] [HasZeroObject V']
+  (G : V ⥤ V') [G.Additive]
+
+set_option backward.isDefEq.respectTransparency false in
+@[simps!]
+def rightFunctorMapArrowIso : rightFunctor V ⋙ G.mapArrow ≅ G ⋙ rightFunctor V' := by
+  refine NatIso.ofComponents (fun X ↦ ?_) (fun f ↦ ?_)
+  · refine Arrow.isoMk G.mapZeroObject (Iso.refl _) ?_
+    simp only [Functor.mapZeroObject_hom, zero_comp, Iso.refl_hom, comp_id]
+    change 0 = Arrow.hom (G.mapArrow.obj _)
+    rw [rightFunctor_obj, Functor.mapArrow_obj]
+    simp
+  · cat_disch
+
+variable (V)
 
 /-- The fully faithful additive functor from  `V` to `RightFreyd V` sending an object `X` of `V`
 to the class of the arrow `0 ⟶ X`. -/
@@ -151,6 +169,38 @@ instance : (functor V).Faithful where
     · rfl
 
 end Functor
+
+section Projection
+
+variable (V) [HasZeroObject V] [HasCokernels V]
+
+/-- If `V` has cokernels, this is the functor `Arrow V ⥤ V` sending an arrow of `V` to
+its cokernel. -/
+@[simps!]
+def projectionAux : Arrow V ⥤ V where
+  obj u := cokernel u.hom
+  map f := cokernel.map _ _ f.left f.right f.w.symm
+
+set_option backward.isDefEq.respectTransparency false in
+/-- If `V` has cokernels, this is the functor `RightFreyd V ⥤ V` sending an arrow of `V` to
+its cokernel. -/
+@[simps!]
+def projection : RightFreyd V ⥤ V := by
+  refine Quotient.lift _ (projectionAux V) (fun u v f g ⟨h⟩ ↦ ?_)
+  rw [← cancel_epi (cokernel.π u.hom)]
+  simp [sub_eq_iff_eq_add.mp h.comm]
+
+set_option backward.isDefEq.respectTransparency false in
+def functorProjectionIso : functor V ⋙ projection V ≅ 𝟭 V := by
+  refine NatIso.ofComponents (fun X ↦ ?_) (fun f ↦ ?_)
+  · exact cokernelZeroIsoTarget
+  · rw [← cancel_epi (cokernel.π _)]
+    simp only [Functor.id_obj, Functor.comp_map, projection_map, cokernelZeroIsoTarget_hom,
+      Functor.id_map]
+    erw [cokernel.π_desc_assoc, cokernel.π_desc_assoc, assoc, cokernel.π_desc, comp_id, id_comp]
+    rfl
+
+end Projection
 
 variable [HasBinaryBiproducts V]
 
