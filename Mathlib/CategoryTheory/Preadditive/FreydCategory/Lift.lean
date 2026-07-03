@@ -346,6 +346,7 @@ def lift_shrink : lift V C ⋙ shrink V C ≅ 𝟭 (V ⥤+ C) := by
     erw [cokernel.π_desc_assoc, assoc, IsIso.hom_inv_id]
     exact comp_id _
 
+variable [HasBinaryBiproducts V] in
 def shrink_lift : shrink V C ⋙ lift V C ≅ 𝟭 (RightFreyd V ⥤ᵣ C) := by
   refine NatIso.ofComponents (fun F ↦ ?_) (fun α ↦ ?_)
   · have : F.1.Additive := rightExactFunctor_le_additiveFunctor _ _  _ F.2
