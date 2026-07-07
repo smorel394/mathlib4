@@ -43,7 +43,6 @@ instance : G.mapRightFreyd.Additive where
     obtain ⟨g, rfl⟩ := (quotient V₁).map_surjective g
     change (quotient V₂).map _ = (quotient V₂).map _ + (quotient V₂).map _
     rw [← (quotient V₂).map_add]
-    congr 1
     simp
     rfl
 
@@ -64,7 +63,29 @@ def functorMapRightFreydIso : functor V₁ ⋙ G.mapRightFreyd ≅ G ⋙ functor
   Functor.associator _ _ _ ≪≫ Functor.isoWhiskerLeft _ (Quotient.lift.isLift _ _ _) ≪≫
   Functor.isoWhiskerRight (rightFunctorMapArrowIso G) (quotient V₂)
 
--- `G.mapRightFreyd` preserves cokernels.
+def preservesCokernels_mapRightFreyd {u v : RightFreyd V₁} (f : u ⟶ v) {c : CokernelCofork f}
+    (hc : IsColimit c) : IsColimit (G.mapRightFreyd.mapCocone c) := by sorry
+
+variable [HasFiniteProducts V₁]
+
+instance : HasFiniteProducts (Arrow V₁) where
+  out _ := inferInstance
+
+instance : HasFiniteProducts (RightFreyd V₁) :=
+  have : (quotient V₁).EssSurj := inferInstance
+  (quotient V₁).hasFiniteProducts_of_additive_of_essSurj
+
+instance : PreservesFiniteColimits G.mapRightFreyd := by
+  have : HasBinaryBiproducts (RightFreyd V₁) := HasBinaryBiproducts.of_hasBinaryProducts
+  have : HasFiniteBiproducts (RightFreyd V₁) := HasFiniteBiproducts.of_hasFiniteProducts
+  have : HasBinaryBiproducts V₁ := HasBinaryBiproducts.of_hasBinaryProducts
+  have : HasCoequalizers (RightFreyd V₁) := Preadditive.hasCoequalizers_of_hasCokernels
+  have : HasZeroObject V₁ := hasZeroObject_of_hasTerminal_object
+  have : HasZeroObject (RightFreyd V₂) := G.mapRightFreyd.hasZeroObject_of_additive
+  have : ∀ {X Y : RightFreyd V₁} (f : X ⟶ Y),
+      PreservesColimit (parallelPair f 0) G.mapRightFreyd :=
+    fun f ↦ {preserves hc := Nonempty.intro (preservesCokernels_mapRightFreyd G f hc)}
+  exact G.mapRightFreyd.preservesFiniteColimits_of_preservesCokernels
 
 end Functor
 
