@@ -227,11 +227,24 @@ namespace Candidate
 in `Arrow V` whose image in `RightFreyd V` will be a cokernel of the image of `f`. -/
 abbrev cokernel := Arrow.mk (biprod.desc v.hom f.right)
 
+/-
+variable (c : BinaryBicone u.right v.left) (lc : c.IsBilimit)
+-/
+
 set_option backward.isDefEq.respectTransparency false in
 /-- For `f : u ⟶ v` a morphism in `Arrow V`, this is the morphism `v ⟶ cokernel f` from `v` to
 the "candidate cokernel" of `f`, whose image in `RightFreyd V` will be the projection to
 the cokernel of the image of `f`. -/
 def π : v ⟶ cokernel f := Arrow.homMk biprod.inl (𝟙 v.right)
+
+/-
+set_option backward.isDefEq.respectTransparency false in
+/-- For `f : u ⟶ v` a morphism in `Arrow V`, this is the morphism `v ⟶ cokernel f` from `v` to
+the "candidate cokernel" of `f`, whose image in `RightFreyd V` will be the projection to
+the cokernel of the image of `f`. -/
+def π_alt : v ⟶ Arrow.mk (lc.isColimit.desc v.hom f.right) := sorry
+--Arrow.homMk biprod.inl (𝟙 v.right)
+-/
 
 set_option backward.isDefEq.respectTransparency false in
 /-- The right homotopy expressing that `f ≫ π f` is sent to `0` in `RightFreyd V`. -/
