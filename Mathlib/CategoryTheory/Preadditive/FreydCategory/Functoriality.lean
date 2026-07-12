@@ -8,11 +8,18 @@ module
 public import Mathlib.CategoryTheory.Preadditive.FreydCategory.RightFreyd
 public import Mathlib.CategoryTheory.Limits.Comma
 public import Mathlib.CategoryTheory.Preadditive.LeftExact
-public import Mathlib.Tactic.ApplyFun
 
 /-!
 
 # Functoriality of the right Freyd category
+
+An additive functor `G : V₁ ⥤ V₂` induces an additive functor
+`G.mapRightFreyd : RightFreyd V₁ ⥤ RightFreyd V₂`, which is obtained from the functor
+`G.mapArrow : Arrow V₁ ⥤ Arrow V₂` by going to the quotient categories.
+
+The functor `G.mapRightFreyd` preserves cokernels. If `V₁` has all finite products, then
+`RightFreyd V₁` has all finite biproducts and all cokernels, and `G.mapRightFreyd` preserves
+finite colimits.
 
 -/
 
@@ -24,32 +31,34 @@ open CategoryTheory Category Limits Arrow Preadditive RightFreyd
 
 variable {V₁ : Type*} [Category* V₁] [Preadditive V₁] {V₂ : Type*} [Category* V₂] [Preadditive V₂]
   (G : V₁ ⥤ V₂) [G.Additive]
-  {C : Type*} [Category* C] [Preadditive C] [HasCokernels C] (F : V₁ ⥤ C) [F.Additive]
 
 namespace CategoryTheory
 
 namespace Functor
 
 set_option backward.isDefEq.respectTransparency false in
-@[simps!]
+/-- The additive functor `RightFreyd V₁ ⥤ RightFreyd V₂` coming from an additive functor
+`G : V₁ ⥤ V₂`. -/
+@[simps! -isSimp]
 def mapRightFreyd : RightFreyd V₁ ⥤ RightFreyd V₂ :=
   Quotient.lift (rightHomotopic V₁) (G.mapArrow ⋙ quotient V₂)
   (fun _ _ _ _ ⟨h⟩ ↦ (eq_of_rightHomotopy _ _ ⟨G.map h.hom, by simp [← G.map_sub, h.comm]; rfl⟩))
 
+/-- The relation between `G.mapRightFreyd` and `G.mapArrow`. -/
 def mapRightFreyd_comp_quotient : quotient V₁ ⋙ G.mapRightFreyd ≅ G.mapArrow ⋙ quotient V₂ :=
   Quotient.lift.isLift _ _ _
 
 set_option backward.isDefEq.respectTransparency false in
-instance : G.mapRightFreyd.Additive where
+instance mapRightFreydAdditive : G.mapRightFreyd.Additive where
   map_add {_ _} f g := by
     obtain ⟨f, rfl⟩ := (quotient V₁).map_surjective f
     obtain ⟨g, rfl⟩ := (quotient V₁).map_surjective g
     change (quotient V₂).map _ = (quotient V₂).map _ + (quotient V₂).map _
     rw [← (quotient V₂).map_add]
-    simp
-    rfl
+    cat_disch
 
 set_option backward.isDefEq.respectTransparency false in
+/-- If `G` is the identity functor, then `G.mapRightFreyd` is isomorphic to the identity functor. -/
 @[simps!]
 def mapRightFreyd_id : (𝟭 V₁).mapRightFreyd ≅ 𝟭 (RightFreyd V₁) :=
   Quotient.natIsoLift _ (NatIso.ofComponents (fun _ ↦ Iso.refl _) (fun _ ↦ by simp; rfl))
@@ -57,16 +66,22 @@ def mapRightFreyd_id : (𝟭 V₁).mapRightFreyd ≅ 𝟭 (RightFreyd V₁) :=
 variable {V₃ : Type*} [Category* V₃] [Preadditive V₃] (H : V₂ ⥤ V₃) [H.Additive]
 
 set_option backward.isDefEq.respectTransparency false in
+/-- Compatibility with composition of functors of the `Functor.mapRightFreyd` construction. -/
 @[simps!]
 def mapRightFreyd_comp : (G ⋙ H).mapRightFreyd ≅ G.mapRightFreyd ⋙ H.mapRightFreyd :=
-  Quotient.natIsoLift _ (NatIso.ofComponents (fun _ ↦ Iso.refl _) (fun _ ↦ by simp; rfl))
+  Quotient.natIsoLift _ (NatIso.ofComponents (fun _ ↦ Iso.refl _) (fun _ ↦ by cat_disch))
 
 variable [HasZeroObject V₁] [HasZeroObject V₂] in
+/-- If we embed the category `V₁` (resp. `V₂`) in its right Freyd category using `functor V₁`,
+then `G.mapRightFreyd` extends `G`. -/
 def functorMapRightFreydIso : functor V₁ ⋙ G.mapRightFreyd ≅ G ⋙ functor V₂ :=
   Functor.associator _ _ _ ≪≫ Functor.isoWhiskerLeft _ (Quotient.lift.isLift _ _ _) ≪≫
   Functor.isoWhiskerRight (rightFunctorMapArrowIso G) (quotient V₂)
 
 set_option backward.isDefEq.respectTransparency false in
+/-- Auxiliary result for the preservation of cokernels by `G.mapRightFreyd. Here we prove
+that `G.mapRightFreyd` preserves the cokernels constructed using the `Candidate.cokernelCofork`
+definition. -/
 def preservesCokernels_mapRightFreyd_aux {u v : Arrow V₁} (f : u ⟶ v)
     [HasBinaryBiproduct v.left u.right] :
     IsColimit (G.mapRightFreyd.mapCocone (Candidate.cokernelCofork f)) := by
@@ -77,7 +92,7 @@ def preservesCokernels_mapRightFreyd_aux {u v : Arrow V₁} (f : u ⟶ v)
     (F := parallelPair ((quotient V₁).map f) 0 ⋙ G.mapRightFreyd)
     (G := parallelPair ((quotient V₂).map (G.mapArrow.map f)) 0)
     (parallelPair.ext (Iso.refl _) (Iso.refl _) (by cat_disch)
-    (by simp [-mapRightFreyd_map, G.mapRightFreyd.map_zero])) _).invFun
+    (by simp [G.mapRightFreyd.map_zero])) _).invFun
     (Candidate.isColimitCokernelCofork (G.mapArrow.map f))) (Cocone.ext ?_ (fun j ↦ ?_))
   · simp only [Candidate.cokernelCofork, Candidate.cokernel, Cocone.precompose_obj_pt,
     Cofork.ofπ_pt, mapArrow_map, homMk_right, mapCocone_pt]
@@ -109,10 +124,10 @@ def preservesCokernels_mapRightFreyd_aux {u v : Arrow V₁} (f : u ⟶ v)
                   change 𝟙 _ ≫ 𝟙 _ ≫ 𝟙 _ = G.map (𝟙 _)
                   rw [id_comp, comp_id, G.map_id]
 
-variable [HasBinaryBiproducts V₁]
-
 set_option backward.isDefEq.respectTransparency false in
-def preservesCokernels_mapRightFreyd {u v : RightFreyd V₁} (f : u ⟶ v) {c : CokernelCofork f}
+/-- The functor `G.mapRightFreyd` preserves cokernels. -/
+def preservesCokernels_mapRightFreyd {u v : RightFreyd V₁} (f : u ⟶ v)
+    [HasBinaryBiproduct v.as.left u.as.right] {c : CokernelCofork f}
     (hc : IsColimit c) : IsColimit (G.mapRightFreyd.mapCocone c) :=
   let h := (quotient V₁).map_surjective f
   let α : parallelPair f 0 ≅ parallelPair ((quotient V₁).map h.choose) 0 :=
@@ -133,12 +148,12 @@ instance : HasFiniteProducts (RightFreyd V₁) :=
   have : (quotient V₁).EssSurj := inferInstance
   (quotient V₁).hasFiniteProducts_of_additive_of_essSurj
 
+/-- If `V₁` has finite limits, then `G.mapRightFreyd` preserves finite colimits. -/
 instance : PreservesFiniteColimits G.mapRightFreyd := by
   have : HasBinaryBiproducts (RightFreyd V₁) := HasBinaryBiproducts.of_hasBinaryProducts
   have : HasFiniteBiproducts (RightFreyd V₁) := HasFiniteBiproducts.of_hasFiniteProducts
   have : HasBinaryBiproducts V₁ := HasBinaryBiproducts.of_hasBinaryProducts
   have : HasCoequalizers (RightFreyd V₁) := Preadditive.hasCoequalizers_of_hasCokernels
-  have : HasZeroObject V₁ := hasZeroObject_of_hasTerminal_object
   have : HasZeroObject (RightFreyd V₂) := G.mapRightFreyd.hasZeroObject_of_additive
   have : ∀ {X Y : RightFreyd V₁} (f : X ⟶ Y),
       PreservesColimit (parallelPair f 0) G.mapRightFreyd :=
@@ -151,6 +166,8 @@ namespace NatTrans
 
 variable {G} {G' G'' : V₁ ⥤ V₂} [G'.Additive] [G''.Additive] (α : G ⟶ G')
 
+/-- Functoriality in `G` of the `Functor.mapRightFreyd` construction: a natural transformation
+`G ⟶ G'` induces a natural transformation `G.mapRightFreyd ⟶ G'.mapRightFreyd`. -/
 def mapRightFreyd : G.mapRightFreyd ⟶ G'.mapRightFreyd :=
   Quotient.natTransLift _ ((Quotient.lift.isLift _ _ _).hom ≫ Functor.whiskerRight
   ((Functor.mapArrowFunctor V₁ V₂).map α) (quotient V₂) ≫ (Quotient.lift.isLift _ _ _).inv)
@@ -172,10 +189,13 @@ end NatTrans
 
 namespace Functor
 
-@[simps]
-def mapRightFreydFunctor : (V₁ ⥤+ V₂) ⥤ (RightFreyd V₁ ⥤ RightFreyd V₂) where
-  obj F := Functor.mapRightFreyd F.1
-  map {F G} α := α.hom.mapRightFreyd
+/-- The `Functor.mapRightFreyd` construction, seen as a functor from the category of
+additive functors from `V₁` to `V₂` to the category of additive functor from
+`RightFreyd V₁` to `RightFreyd V₂`. -/
+@[simps!]
+def mapRightFreydFunctor : (V₁ ⥤+ V₂) ⥤ (RightFreyd V₁ ⥤+ RightFreyd V₂) := by
+  refine ObjectProperty.lift _ {obj G := G.1.mapRightFreyd, map α := α.hom.mapRightFreyd}
+    (fun G ↦ G.1.mapRightFreydAdditive)
 
 end Functor
 
