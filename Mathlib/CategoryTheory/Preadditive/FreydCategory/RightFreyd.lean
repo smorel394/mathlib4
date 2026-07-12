@@ -217,34 +217,21 @@ def functorProjectionIso : functor V ⋙ projection V ≅ 𝟭 V := by
 
 end Projection
 
-variable [HasBinaryBiproducts V]
+namespace Candidate
 
 variable {u v : Arrow V} (f : u ⟶ v)
 
-namespace Candidate
+variable [HasBinaryBiproduct v.left u.right]
 
 /-- If `f` is a morphism of `Arrow V`, this is a "candidate cokernel" of `f`, i.e. an object
 in `Arrow V` whose image in `RightFreyd V` will be a cokernel of the image of `f`. -/
 abbrev cokernel := Arrow.mk (biprod.desc v.hom f.right)
-
-/-
-variable (c : BinaryBicone u.right v.left) (lc : c.IsBilimit)
--/
 
 set_option backward.isDefEq.respectTransparency false in
 /-- For `f : u ⟶ v` a morphism in `Arrow V`, this is the morphism `v ⟶ cokernel f` from `v` to
 the "candidate cokernel" of `f`, whose image in `RightFreyd V` will be the projection to
 the cokernel of the image of `f`. -/
 def π : v ⟶ cokernel f := Arrow.homMk biprod.inl (𝟙 v.right)
-
-/-
-set_option backward.isDefEq.respectTransparency false in
-/-- For `f : u ⟶ v` a morphism in `Arrow V`, this is the morphism `v ⟶ cokernel f` from `v` to
-the "candidate cokernel" of `f`, whose image in `RightFreyd V` will be the projection to
-the cokernel of the image of `f`. -/
-def π_alt : v ⟶ Arrow.mk (lc.isColimit.desc v.hom f.right) := sorry
---Arrow.homMk biprod.inl (𝟙 v.right)
--/
 
 set_option backward.isDefEq.respectTransparency false in
 /-- The right homotopy expressing that `f ≫ π f` is sent to `0` in `RightFreyd V`. -/
@@ -288,6 +275,8 @@ def isColimitCokernelCofork : IsColimit (cokernelCofork f) :=
         by simp [← Functor.map_comp]⟩))
 
 end Candidate
+
+variable [HasBinaryBiproducts V]
 
 /-- The category `RightFreyd V` has all cokernels if `V` has binary biproducts. -/
 instance : HasCokernels (RightFreyd V) where

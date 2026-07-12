@@ -36,6 +36,9 @@ def mapRightFreyd : RightFreyd V₁ ⥤ RightFreyd V₂ :=
   Quotient.lift (rightHomotopic V₁) (G.mapArrow ⋙ quotient V₂)
   (fun _ _ _ _ ⟨h⟩ ↦ (eq_of_rightHomotopy _ _ ⟨G.map h.hom, by simp [← G.map_sub, h.comm]; rfl⟩))
 
+def mapRightFreyd_comp_quotient : quotient V₁ ⋙ G.mapRightFreyd ≅ G.mapArrow ⋙ quotient V₂ :=
+  Quotient.lift.isLift _ _ _
+
 set_option backward.isDefEq.respectTransparency false in
 instance : G.mapRightFreyd.Additive where
   map_add {_ _} f g := by
@@ -65,19 +68,72 @@ def functorMapRightFreydIso : functor V₁ ⋙ G.mapRightFreyd ≅ G ⋙ functor
 
 variable [HasBinaryBiproducts V₁]
 
+set_option backward.isDefEq.respectTransparency false in
 def preservesCokernels_mapRightFreyd_aux {u v : Arrow V₁} (f : u ⟶ v) :
-    IsColimit (G.mapRightFreyd.mapCocone (Candidate.cokernelCofork f)) := by sorry
+    IsColimit (G.mapRightFreyd.mapCocone (Candidate.cokernelCofork f)) := by
+  have : PreservesBinaryBiproducts G := preservesBinaryBiproducts_of_preservesBiproducts _
+  have Gb : HasBinaryBiproduct (G.obj v.left) (G.obj u.right) :=
+    G.hasBinaryBiproduct_of_preserves _ _
+  have : HasBinaryBiproduct (G.mapArrow.obj v).left (G.mapArrow.obj u).right := Gb
+  set c := Candidate.cokernelCofork (G.mapArrow.map f)
+  set c' := G.mapRightFreyd.mapCocone (Candidate.cokernelCofork f)
+  set α : parallelPair ((quotient V₁).map f) 0 ⋙ G.mapRightFreyd ≅
+      parallelPair ((quotient V₂).map (G.mapArrow.map f)) 0 := by
+    refine parallelPair.ext (Iso.refl _) (Iso.refl _) ?_ ?_
+    · simp; rfl
+    · simp only [parallelPair_obj_zero, parallelPair_obj_one, parallelPair_map_right, Iso.refl_hom,
+      comp_id, comp_map, id_comp]
+      rw [G.mapRightFreyd.map_zero]
+  set e : c' ≅ (Cocone.precompose α.hom).obj c := by
+    refine Cocone.ext ?_ (fun j ↦ ?_)
+    · refine G.mapRightFreyd_comp_quotient.app _ ≪≫ (quotient V₂).mapIso
+        (Arrow.isoMk (G.mapBiprod _ _) (Iso.refl _) ?_)
+      simp only [biprod.uniqueUpToIso_hom, mapBinaryBicone_fst, BinaryBiproduct.bicone_fst,
+        mapBinaryBicone_snd, BinaryBiproduct.bicone_snd, mk_hom, mapArrow_map, homMk_right,
+        biprod.lift_desc, Iso.refl_hom, comp_id]
+      change _ ≫ G.map _ + _ = _
+      rw [← G.map_comp, ← G.map_comp, ← G.map_add]
+      refine congrArg G.map (by cat_disch)
+    · match j with
+      | .zero => simp only [mapCocone_ι_app, parallelPair_obj_zero, Cofork.app_zero_eq_comp_π_left,
+        CokernelCofork.condition, Iso.trans_hom, Iso.app_hom, mapIso_hom,
+        Cocone.precompose_obj_ι, NatTrans.comp_app, mapArrow_map, comp_zero,
+        IsIso.comp_right_eq_zero, c, c']
+                 exact G.mapRightFreyd.map_zero _ _
+      | .one => refine congrArg (quotient V₂).map ?_
+                ext
+                · have : HasBinaryBiproduct (G.mapArrow.obj v).left (G.obj u.right) := Gb
+                  have : HasBinaryBiproduct (G.obj v.left) (G.mapArrow.obj u).right := Gb
+                  simp only [parallelPair_obj_one, Candidate.π, mapArrow_map, homMk_left,
+                    homMk_right, comp_left, id_left, isoMk_hom_left, biprod.uniqueUpToIso_hom,
+                    mapBinaryBicone_fst, BinaryBiproduct.bicone_fst, mapBinaryBicone_snd,
+                    BinaryBiproduct.bicone_snd, id_comp]
+                  erw [id_comp]
+                  refine biprod.hom_ext _ _ ?_ ?_
+                  · simp only [assoc, BinaryBicone.inl_fst]
+                    erw [biprod.lift_fst]
+                    rw [← G.map_comp]
+                    erw [biprod.inl_fst]
+                    exact G.map_id _
+                  · simp only [assoc, BinaryBicone.inl_snd]
+                    erw [biprod.lift_snd]
+                    rw [← G.map_comp]
+                    erw [biprod.inl_snd]
+                    exact G.map_zero _ _
+                · simp only [parallelPair_obj_one, Candidate.π, mapArrow_map, homMk_left,
+                  homMk_right, comp_right, id_right, isoMk_hom_right, Iso.refl_hom, id_comp]
+                  erw [id_comp, comp_id]
+                  exact G.map_id _
+  refine IsColimit.ofIsoColimit ?_ e.symm
+  refine (IsColimit.precomposeHomEquiv α _).invFun ?_
+  exact Candidate.isColimitCokernelCofork _
 
+set_option backward.isDefEq.respectTransparency false in
 def preservesCokernels_mapRightFreyd {u v : RightFreyd V₁} (f : u ⟶ v) {c : CokernelCofork f}
     (hc : IsColimit c) : IsColimit (G.mapRightFreyd.mapCocone c) := by
   set h := (quotient V₁).map_surjective f
   set α : parallelPair f 0 ≅ parallelPair ((quotient V₁).map h.choose) 0 :=
-      NatIso.ofComponents (fun j => eqToIso <| by cases j <;> rfl)
-      (fun f ↦ by cases f
-                  · change _ ≫ 𝟙 _ = 𝟙 _ ≫ _
-                    simp [h.choose_spec]
-                  · simp
-                  · simp)
+    parallelPair.ext (eqToIso rfl) (eqToIso rfl) (by simp [h.choose_spec])
   set e : c ≅ (Cocone.precompose α.hom).obj (Candidate.cokernelCofork h.choose) := by
     have := (IsColimit.precomposeHomEquiv α (Candidate.cokernelCofork h.choose)).invFun
       (Candidate.isColimitCokernelCofork h.choose)
