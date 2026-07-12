@@ -106,8 +106,8 @@ def preservesCokernels_mapRightFreyd_aux {u v : Arrow V₁} (f : u ⟶ v)
                   exact comp_id _
                 · simp only [parallelPair_obj_one, Candidate.π, id_comp, comp_right, homMk_right,
                   isoMk_hom_right, Iso.refl_hom, id_right, mapArrow_map, homMk_left]
-                  erw [id_comp, comp_id]
-                  exact (G.map_id _).symm
+                  change 𝟙 _ ≫ 𝟙 _ ≫ 𝟙 _ = G.map (𝟙 _)
+                  rw [id_comp, comp_id, G.map_id]
 
 variable [HasBinaryBiproducts V₁]
 
