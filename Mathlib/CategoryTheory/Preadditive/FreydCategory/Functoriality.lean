@@ -74,12 +74,29 @@ def mapRightFreyd_comp : (G ⋙ H).mapRightFreyd ≅ G.mapRightFreyd ⋙ H.mapRi
 variable [HasZeroObject V₁] [HasZeroObject V₂] in
 /-- If we embed the category `V₁` (resp. `V₂`) in its right Freyd category using `functor V₁`,
 then `G.mapRightFreyd` extends `G`. -/
-def functorMapRightFreydIso : functor V₁ ⋙ G.mapRightFreyd ≅ G ⋙ functor V₂ :=
+def functorCompMapRightFreydIso : functor V₁ ⋙ G.mapRightFreyd ≅ G ⋙ functor V₂ :=
   Functor.associator _ _ _ ≪≫ Functor.isoWhiskerLeft _ (Quotient.lift.isLift _ _ _) ≪≫
   Functor.isoWhiskerRight (rightFunctorMapArrowIso G) (quotient V₂)
 
-def mapRightFreydProjectionIso [HasCokernels V₁] [HasCokernels V₂] :
-    G.mapRightFreyd ⋙ projection V₂ ≅ projection V₁ ⋙ G := sorry
+set_option backward.isDefEq.respectTransparency false in
+def mapRightFreydCompProjectionIso [HasCokernels V₁] [HasCokernels V₂]
+    [PreservesColimitsOfShape WalkingParallelPair G] :
+    G.mapRightFreyd ⋙ projection V₂ ≅ projection V₁ ⋙ G := by
+  refine Quotient.natIsoLift _ ?_
+  refine NatIso.ofComponents (fun _ ↦ (PreservesCokernel.iso G _).symm) (fun {u v} f ↦ ?_)
+  rw [← cancel_epi (cokernel.π _)]
+  simp only [Iso.symm_hom, PreservesCokernel.iso_inv]
+  change _ = cokernel.π _ ≫ cokernelComparison _ _ ≫ G.map _
+  rw [π_comp_cokernelComparison_assoc, ← G.map_comp]
+  change cokernel.π (G.map u.hom) ≫ cokernel.map _ _ (G.map f.left) (G.map f.right)
+    (by rw [← G.map_comp, ← f.w, G.map_comp]) ≫ cokernelComparison v.hom G =
+    G.map (cokernel.π u.hom ≫ cokernel.map _ _ _ _ f.w.symm)
+  dsimp [cokernel.map]
+  rw [cokernel.π_desc, cokernel.π_desc_assoc, assoc, π_comp_cokernelComparison, map_comp]
+
+variable (V₁) in
+def functorMapRightFreydCompProjectionIso [HasZeroObject V₁] [HasBinaryBiproducts V₁] :
+    (functor V₁).mapRightFreyd ⋙ projection (RightFreyd V₁) ≅ 𝟭 (RightFreyd V₁) := sorry
 
 set_option backward.isDefEq.respectTransparency false in
 /-- Auxiliary result for the preservation of cokernels by `G.mapRightFreyd. Here we prove

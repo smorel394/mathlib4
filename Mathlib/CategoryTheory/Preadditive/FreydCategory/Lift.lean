@@ -43,14 +43,14 @@ instance : (RightFreyd.functorLift F).Additive := by
   infer_instance
 
 def functorLiftIsLift [HasZeroObject V] [HasZeroObject C] : functor V ⋙ functorLift F ≅ F :=
-  (Functor.associator _ _ _).symm ≪≫ Functor.isoWhiskerRight F.functorMapRightFreydIso
+  (Functor.associator _ _ _).symm ≪≫ Functor.isoWhiskerRight F.functorCompMapRightFreydIso
   (projection C) ≪≫ Functor.associator _ _ _ ≪≫ F.isoWhiskerLeft (functorProjectionIso C)
   ≪≫ F.rightUnitor
 
 /-- If `C` is a preadditive category with cokernels and `F : V ⥤ C` is an additive functor,
 the composition of `functor : V ⥤ RightFreyd V` and of `functorLift F` is isomorphic to `F`. -/
 def functorLiftIso [HasZeroObject V] [HasZeroObject C] : functor V ⋙ functorLift F ≅ F :=
-  (Functor.associator _ _ _).symm ≪≫ Functor.isoWhiskerRight F.functorMapRightFreydIso
+  (Functor.associator _ _ _).symm ≪≫ Functor.isoWhiskerRight F.functorCompMapRightFreydIso
   (projection C) ≪≫ Functor.associator _ _ _ ≪≫ Functor.isoWhiskerLeft F (functorProjectionIso C)
   ≪≫ F.rightUnitor
 
@@ -61,9 +61,9 @@ def functorLiftUnique (G : RightFreyd V ⥤ C) [G.Additive] [PreservesFiniteColi
   dsimp [functorLift]
   refine Functor.isoWhiskerRight ((functor V).mapRightFreyd_comp G) (projection C) ≪≫ ?_
   refine Functor.associator _ _ _ ≪≫ ?_
-  refine (functor V).mapRightFreyd.isoWhiskerLeft G.mapRightFreydProjectionIso ≪≫ ?_
-  sorry
-
+  refine (functor V).mapRightFreyd.isoWhiskerLeft G.mapRightFreydCompProjectionIso ≪≫ ?_
+  refine (Functor.associator _ _ _).symm ≪≫ ?_
+  exact Functor.isoWhiskerRight (Functor.functorMapRightFreydCompProjectionIso V) G ≪≫ G.leftUnitor
 
 #exit
 
