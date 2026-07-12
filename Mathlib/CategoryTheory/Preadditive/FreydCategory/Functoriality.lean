@@ -71,65 +71,43 @@ def preservesCokernels_mapRightFreyd_aux {u v : Arrow V₁} (f : u ⟶ v)
     [HasBinaryBiproduct v.left u.right] :
     IsColimit (G.mapRightFreyd.mapCocone (Candidate.cokernelCofork f)) := by
   have : PreservesBinaryBiproducts G := preservesBinaryBiproducts_of_preservesBiproducts _
-  have Gb : HasBinaryBiproduct (G.obj v.left) (G.obj u.right) :=
+  have : HasBinaryBiproduct (G.mapArrow.obj v).left (G.mapArrow.obj u).right :=
     G.hasBinaryBiproduct_of_preserves _ _
-  have : HasBinaryBiproduct (G.mapArrow.obj v).left (G.mapArrow.obj u).right := Gb
-  set c := Candidate.cokernelCofork (G.mapArrow.map f)
-  set c' := G.mapRightFreyd.mapCocone (Candidate.cokernelCofork f)
-  set α : parallelPair ((quotient V₁).map f) 0 ⋙ G.mapRightFreyd ≅
-      parallelPair ((quotient V₂).map (G.mapArrow.map f)) 0 := by
-    refine parallelPair.ext (Iso.refl _) (Iso.refl _) ?_ ?_
-    · simp; rfl
-    · simp only [parallelPair_obj_zero, parallelPair_obj_one, parallelPair_map_right, Iso.refl_hom,
-      comp_id, comp_map, id_comp]
-      rw [G.mapRightFreyd.map_zero]
-  set e : c' ≅ (Cocone.precompose α.hom).obj c := by
-    refine Cocone.ext ?_ (fun j ↦ ?_)
-    · refine G.mapRightFreyd_comp_quotient.app _ ≪≫ (quotient V₂).mapIso
-        (Arrow.isoMk (G.mapBiprod _ _) (Iso.refl _) ?_)
-      simp only [biprod.uniqueUpToIso_hom, mapBinaryBicone_fst, BinaryBiproduct.bicone_fst,
-        mapBinaryBicone_snd, BinaryBiproduct.bicone_snd, mk_hom, mapArrow_map, homMk_right,
-        biprod.lift_desc, Iso.refl_hom, comp_id]
-      change _ ≫ G.map _ + _ = _
-      rw [← G.map_comp, ← G.map_comp, ← G.map_add]
-      refine congrArg G.map (by cat_disch)
-    · match j with
-      | .zero => simp only [mapCocone_ι_app, parallelPair_obj_zero, Cofork.app_zero_eq_comp_π_left,
-        CokernelCofork.condition, Iso.trans_hom, Iso.app_hom, mapIso_hom,
-        Cocone.precompose_obj_ι, NatTrans.comp_app, mapArrow_map, comp_zero,
-        IsIso.comp_right_eq_zero, c, c']
-                 exact G.mapRightFreyd.map_zero _ _
+  refine IsColimit.ofIsoColimit ((IsColimit.precomposeHomEquiv
+    (F := parallelPair ((quotient V₁).map f) 0 ⋙ G.mapRightFreyd)
+    (G := parallelPair ((quotient V₂).map (G.mapArrow.map f)) 0)
+    (parallelPair.ext (Iso.refl _) (Iso.refl _) (by cat_disch)
+    (by simp [-mapRightFreyd_map, G.mapRightFreyd.map_zero])) _).invFun
+    (Candidate.isColimitCokernelCofork (G.mapArrow.map f))) (Cocone.ext ?_ (fun j ↦ ?_))
+  · simp only [Candidate.cokernelCofork, Candidate.cokernel, Cocone.precompose_obj_pt,
+    Cofork.ofπ_pt, mapArrow_map, homMk_right, mapCocone_pt]
+    refine (quotient V₂).mapIso ?_ ≪≫ (G.mapRightFreyd_comp_quotient.app _).symm
+    refine Arrow.isoMk (G.mapBiprod _ _).symm (Iso.refl _) (biprod.hom_ext' _ _ ?_ ?_)
+    · simp only [Iso.symm_hom, biprod.uniqueUpToIso_inv, mapBinaryBicone_inl,
+      BinaryBiproduct.bicone_inl, mapBinaryBicone_inr, BinaryBiproduct.bicone_inr,
+      biprod.inl_desc_assoc, mk_hom, Iso.refl_hom, comp_id, biprod.inl_desc]
+      exact (G.map_comp _ _).symm.trans (congrArg G.map (by simp))
+    · simp only [Iso.symm_hom, biprod.uniqueUpToIso_inv, mapBinaryBicone_inl,
+      BinaryBiproduct.bicone_inl, mapBinaryBicone_inr, BinaryBiproduct.bicone_inr,
+      biprod.inr_desc_assoc, mk_hom, Iso.refl_hom, comp_id, biprod.inr_desc]
+      exact (G.map_comp _ _).symm.trans (congrArg G.map (by simp))
+  · match j with
+      | .zero => simp only [Cocone.precompose_obj_ι, NatTrans.comp_app, parallelPair_obj_zero,
+        Cofork.app_zero_eq_comp_π_left, mapArrow_map, CokernelCofork.condition, comp_zero,
+        eq_mpr_eq_cast, cast_eq, Iso.trans_hom, mapIso_hom, Iso.symm_hom, Iso.app_inv, zero_comp,
+        mapCocone_ι_app]
+                 exact (G.mapRightFreyd.map_zero _ _).symm
       | .one => refine congrArg (quotient V₂).map ?_
                 ext
-                · have : HasBinaryBiproduct (G.mapArrow.obj v).left (G.obj u.right) := Gb
-                  have : HasBinaryBiproduct (G.obj v.left) (G.mapArrow.obj u).right := Gb
-                  simp only [parallelPair_obj_one, Candidate.π, mapArrow_map, homMk_left,
-                    homMk_right, comp_left, id_left, isoMk_hom_left, biprod.uniqueUpToIso_hom,
-                    mapBinaryBicone_fst, BinaryBiproduct.bicone_fst, mapBinaryBicone_snd,
-                    BinaryBiproduct.bicone_snd, id_comp]
-                  erw [id_comp]
-                  refine biprod.hom_ext _ _ ?_ ?_
-                  · simp only [assoc, BinaryBicone.inl_fst]
-                    erw [biprod.lift_fst]
-                    rw [← G.map_comp]
-                    have : HasBinaryBiproduct ((quotient V₁).obj v).as.left u.right :=
-                      inferInstanceAs (HasBinaryBiproduct v.left u.right)
-                    erw [biprod.inl_fst]
-                    exact G.map_id _
-                  · simp only [assoc, BinaryBicone.inl_snd]
-                    erw [biprod.lift_snd]
-                    rw [← G.map_comp]
-                    have : HasBinaryBiproduct ((quotient V₁).obj v).as.left u.right :=
-                      inferInstanceAs (HasBinaryBiproduct v.left u.right)
-                    erw [biprod.inl_snd]
-                    exact G.map_zero _ _
-                · simp only [parallelPair_obj_one, Candidate.π, mapArrow_map, homMk_left,
-                  homMk_right, comp_right, id_right, isoMk_hom_right, Iso.refl_hom, id_comp]
+                · simp only [parallelPair_obj_one, Candidate.π, id_comp, comp_left, homMk_left,
+                  isoMk_hom_left, Iso.symm_hom, biprod.uniqueUpToIso_inv, mapBinaryBicone_inl,
+                  BinaryBiproduct.bicone_inl, mapBinaryBicone_inr, BinaryBiproduct.bicone_inr,
+                  id_left, biprod.inl_desc_assoc, mapArrow_map, homMk_right]
+                  exact comp_id _
+                · simp only [parallelPair_obj_one, Candidate.π, id_comp, comp_right, homMk_right,
+                  isoMk_hom_right, Iso.refl_hom, id_right, mapArrow_map, homMk_left]
                   erw [id_comp, comp_id]
-                  exact G.map_id _
-  refine IsColimit.ofIsoColimit ?_ e.symm
-  refine (IsColimit.precomposeHomEquiv α _).invFun ?_
-  exact Candidate.isColimitCokernelCofork _
+                  exact (G.map_id _).symm
 
 variable [HasBinaryBiproducts V₁]
 
