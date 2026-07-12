@@ -78,6 +78,9 @@ def functorMapRightFreydIso : functor V₁ ⋙ G.mapRightFreyd ≅ G ⋙ functor
   Functor.associator _ _ _ ≪≫ Functor.isoWhiskerLeft _ (Quotient.lift.isLift _ _ _) ≪≫
   Functor.isoWhiskerRight (rightFunctorMapArrowIso G) (quotient V₂)
 
+def mapRightFreydProjectionIso [HasCokernels V₁] [HasCokernels V₂] :
+    G.mapRightFreyd ⋙ projection V₂ ≅ projection V₁ ⋙ G := sorry
+
 set_option backward.isDefEq.respectTransparency false in
 /-- Auxiliary result for the preservation of cokernels by `G.mapRightFreyd. Here we prove
 that `G.mapRightFreyd` preserves the cokernels constructed using the `Candidate.cokernelCofork`

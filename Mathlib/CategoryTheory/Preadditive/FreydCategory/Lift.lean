@@ -59,10 +59,10 @@ variable [HasZeroObject V] [HasBinaryBiproducts V]
 def functorLiftUnique (G : RightFreyd V ⥤ C) [G.Additive] [PreservesFiniteColimits G] :
     functorLift (functor V ⋙ G) ≅ G := by
   dsimp [functorLift]
-  refine NatIso.ofComponents (fun a ↦ ?_) (fun {a b} f ↦ ?_)
-  · sorry
-  · sorry
-
+  refine Functor.isoWhiskerRight ((functor V).mapRightFreyd_comp G) (projection C) ≪≫ ?_
+  refine Functor.associator _ _ _ ≪≫ ?_
+  refine (functor V).mapRightFreyd.isoWhiskerLeft G.mapRightFreydProjectionIso ≪≫ ?_
+  sorry
 
 
 #exit
