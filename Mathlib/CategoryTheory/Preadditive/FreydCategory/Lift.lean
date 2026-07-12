@@ -47,52 +47,25 @@ def functorLiftIsLift [HasZeroObject V] [HasZeroObject C] : functor V ⋙ functo
   (projection C) ≪≫ Functor.associator _ _ _ ≪≫ F.isoWhiskerLeft (functorProjectionIso C)
   ≪≫ F.rightUnitor
 
+/-- If `C` is a preadditive category with cokernels and `F : V ⥤ C` is an additive functor,
+the composition of `functor : V ⥤ RightFreyd V` and of `functorLift F` is isomorphic to `F`. -/
+def functorLiftIso [HasZeroObject V] [HasZeroObject C] : functor V ⋙ functorLift F ≅ F :=
+  (Functor.associator _ _ _).symm ≪≫ Functor.isoWhiskerRight F.functorMapRightFreydIso
+  (projection C) ≪≫ Functor.associator _ _ _ ≪≫ Functor.isoWhiskerLeft F (functorProjectionIso C)
+  ≪≫ F.rightUnitor
+
+variable [HasZeroObject V] [HasBinaryBiproducts V]
+
+def functorLiftUnique (G : RightFreyd V ⥤ C) [G.Additive] [PreservesFiniteColimits G] :
+    functorLift (functor V ⋙ G) ≅ G := by
+  dsimp [functorLift]
+  refine NatIso.ofComponents (fun a ↦ ?_) (fun {a b} f ↦ ?_)
+  · sorry
+  · sorry
+
 
 
 #exit
-/-- If `C` is a preadditive category with cokernels, any additive functor `F : V ⥤ C`
-extends to an additive functor `functorLiftAux F : Arrow V ⥤ C` by sending an arrow `u`
-of `V` to the cokernel of `F.map u`. -/
-def functorLiftAux :
-    Arrow V ⥤ C where
-      obj u := cokernel (F.map u.hom)
-      map f := cokernel.map _ _ (F.map f.left) (F.map f.right)
-        (by rw [← F.map_comp, ← f.w, F.map_comp])
-
-set_option backward.isDefEq.respectTransparency false in
-instance : (functorLiftAux F).Additive where
-  map_add {_ _} {_ _}:= by
-    rw [← cancel_epi (cokernel.π _)]
-    simp [functorLiftAux]
-
-lemma functorLiftAux_eq_of_rightHomotopic {u v : Arrow V} (f g : u ⟶ v) (h : rightHomotopic V f g) :
-    (functorLiftAux F).map f = (functorLiftAux F).map g := by
-  simp only [functorLiftAux]
-  refine (cancel_epi (cokernel.π (F.map u.hom))).mp ?_
-  rw [cokernel.π_desc, sub_eq_iff_eq_add.mp h.some.comm]
-  simp
-
-/-- If `C` is a preadditive category with cokernels, any additive functor `F : V ⥤ C`
-extends to an additive functor `functorLift F : RightFreyd V ⥤ C` by sending an object of
-`RightFreyd V` represented by `u : Arrow V` to the cokernel of `F.map u`. -/
-def functorLift : RightFreyd V ⥤ C :=
-  Quotient.lift _ (functorLiftAux F) (fun _ _ ↦ functorLiftAux_eq_of_rightHomotopic F)
-
-@[simp]
-lemma functorLift_obj (u : Arrow V) :
-    (functorLift F).obj ((quotient V).obj u) = (functorLiftAux F).obj u := by rfl
-
-@[simp]
-lemma functorLift_map {u v : Arrow V} (f : u ⟶ v) :
-    (functorLift F).map ((quotient V).map f) = (functorLiftAux F).map f := by rfl
-
-set_option backward.isDefEq.respectTransparency false in
-instance : (functorLift F).Additive where
-  map_add {_ _} {f g} := by
-    obtain ⟨a, rfl⟩ := (quotient V).map_surjective f
-    obtain ⟨b, rfl⟩ := (quotient V).map_surjective g
-    rw [← (quotient V).map_add]
-    simp only [functorLift_map, (functorLiftAux F).map_add]
 
 variable {F} {F' : V ⥤ C} [F'.Additive]
 
@@ -120,25 +93,6 @@ lemma natTransLift_comp {F'' : V ⥤ C} [F''.Additive] (α : F ⟶ F') (β : F' 
   refine (cancel_epi (cokernel.π _)).mp (by simp)
 
 variable (F) [HasZeroObject V]
-
-set_option backward.isDefEq.respectTransparency false in
-/-- If `C` is a preadditive category with cokernels and `F : V ⥤ C` is an additive functor,
-the composition of the functor `rightFunctor : V ⥤ Arrow V` (sending `X` to the arrow `0 ⟶ X`)
-and of `functorLiftAux F` is isomorphic to `F`. -/
-@[simps!]
-def rightFunctorLiftAuxIso : rightFunctor V ⋙ functorLiftAux F ≅ F := by
-  refine NatIso.ofComponents (fun X ↦ ?_) (fun u ↦ ?_)
-  · have : IsIso (cokernel.π (F.map (((rightFunctor V).obj X).hom))) :=
-      coequalizer.π_of_eq (F.map_zero _ _)
-    exact (asIso (cokernel.π (F.map (((rightFunctor V).obj X).hom)))).symm
-  · simp [rightFunctor, functorLiftAux]
-
-/-- If `C` is a preadditive category with cokernels and `F : V ⥤ C` is an additive functor,
-the composition of `functor : V ⥤ RightFreyd V` and of `functorLift F` is isomorphic to `F`. -/
-def functorLiftIso : functor V ⋙ functorLift F ≅ F :=
-  Functor.associator _ _ _ ≪≫ (rightFunctor V).isoWhiskerLeft
-  (Quotient.lift.isLift (rightHomotopic V) (functorLiftAux F)
-  (fun _ _ f g h ↦ functorLiftAux_eq_of_rightHomotopic F f g h)) ≪≫ rightFunctorLiftAuxIso F
 
 set_option backward.isDefEq.respectTransparency false in
 @[simp]
