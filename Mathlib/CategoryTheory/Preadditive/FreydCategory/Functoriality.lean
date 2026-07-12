@@ -66,10 +66,9 @@ def functorMapRightFreydIso : functor V₁ ⋙ G.mapRightFreyd ≅ G ⋙ functor
   Functor.associator _ _ _ ≪≫ Functor.isoWhiskerLeft _ (Quotient.lift.isLift _ _ _) ≪≫
   Functor.isoWhiskerRight (rightFunctorMapArrowIso G) (quotient V₂)
 
-variable [HasBinaryBiproducts V₁]
-
 set_option backward.isDefEq.respectTransparency false in
-def preservesCokernels_mapRightFreyd_aux {u v : Arrow V₁} (f : u ⟶ v) :
+def preservesCokernels_mapRightFreyd_aux {u v : Arrow V₁} (f : u ⟶ v)
+    [HasBinaryBiproduct v.left u.right] :
     IsColimit (G.mapRightFreyd.mapCocone (Candidate.cokernelCofork f)) := by
   have : PreservesBinaryBiproducts G := preservesBinaryBiproducts_of_preservesBiproducts _
   have Gb : HasBinaryBiproduct (G.obj v.left) (G.obj u.right) :=
@@ -113,11 +112,15 @@ def preservesCokernels_mapRightFreyd_aux {u v : Arrow V₁} (f : u ⟶ v) :
                   · simp only [assoc, BinaryBicone.inl_fst]
                     erw [biprod.lift_fst]
                     rw [← G.map_comp]
+                    have : HasBinaryBiproduct ((quotient V₁).obj v).as.left u.right :=
+                      inferInstanceAs (HasBinaryBiproduct v.left u.right)
                     erw [biprod.inl_fst]
                     exact G.map_id _
                   · simp only [assoc, BinaryBicone.inl_snd]
                     erw [biprod.lift_snd]
                     rw [← G.map_comp]
+                    have : HasBinaryBiproduct ((quotient V₁).obj v).as.left u.right :=
+                      inferInstanceAs (HasBinaryBiproduct v.left u.right)
                     erw [biprod.inl_snd]
                     exact G.map_zero _ _
                 · simp only [parallelPair_obj_one, Candidate.π, mapArrow_map, homMk_left,
@@ -128,22 +131,20 @@ def preservesCokernels_mapRightFreyd_aux {u v : Arrow V₁} (f : u ⟶ v) :
   refine (IsColimit.precomposeHomEquiv α _).invFun ?_
   exact Candidate.isColimitCokernelCofork _
 
+variable [HasBinaryBiproducts V₁]
+
 set_option backward.isDefEq.respectTransparency false in
 def preservesCokernels_mapRightFreyd {u v : RightFreyd V₁} (f : u ⟶ v) {c : CokernelCofork f}
-    (hc : IsColimit c) : IsColimit (G.mapRightFreyd.mapCocone c) := by
-  set h := (quotient V₁).map_surjective f
-  set α : parallelPair f 0 ≅ parallelPair ((quotient V₁).map h.choose) 0 :=
+    (hc : IsColimit c) : IsColimit (G.mapRightFreyd.mapCocone c) :=
+  let h := (quotient V₁).map_surjective f
+  let α : parallelPair f 0 ≅ parallelPair ((quotient V₁).map h.choose) 0 :=
     parallelPair.ext (eqToIso rfl) (eqToIso rfl) (by simp [h.choose_spec])
-  set e : c ≅ (Cocone.precompose α.hom).obj (Candidate.cokernelCofork h.choose) := by
-    have := (IsColimit.precomposeHomEquiv α (Candidate.cokernelCofork h.choose)).invFun
-      (Candidate.isColimitCokernelCofork h.choose)
-    exact hc.uniqueUpToIso this
-  set e' := (Cocone.functoriality _ G.mapRightFreyd).mapIso e
-  refine IsColimit.ofIsoColimit ?_ e'.symm
-  set f := G.mapRightFreyd.mapCoconePrecompose (α := α.hom) (c := Candidate.cokernelCofork h.choose)
-  refine IsColimit.ofIsoColimit ?_ f.symm
-  refine (IsColimit.precomposeHomEquiv (Functor.isoWhiskerRight α G.mapRightFreyd) _ ).invFun ?_
-  exact preservesCokernels_mapRightFreyd_aux G h.choose
+  IsColimit.ofIsoColimit (IsColimit.ofIsoColimit ((IsColimit.precomposeHomEquiv
+    (Functor.isoWhiskerRight α G.mapRightFreyd) _ ).invFun (preservesCokernels_mapRightFreyd_aux G
+    h.choose)) G.mapRightFreyd.mapCoconePrecompose.symm)
+    ((Cocone.functoriality _ G.mapRightFreyd).mapIso (hc.uniqueUpToIso
+    ((IsColimit.precomposeHomEquiv α (Candidate.cokernelCofork h.choose)).invFun
+    (Candidate.isColimitCokernelCofork h.choose)))).symm
 
 variable [HasFiniteProducts V₁]
 
